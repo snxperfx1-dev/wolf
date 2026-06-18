@@ -5548,29 +5548,116 @@ f_v72_run(int _dir3, int _dir4, array<float> _cf, array<int> _ci, array<bool> _c
     // Winner — HIGHEST SCORE wins (not priority, not closest, not highest residual,
     // not first-found). Each candidate's score already encodes its hierarchy weight;
     // ties resolve FU > Attractor > FRZ to honour the imbalance-first hierarchy.
-    float _tpl_sFu  = _tpl_fuOK  ? tpl_fuScore : -1.0
-    float _tpl_sAtt = _tpl_attOK ? tpl_attractorScore : -1.0
-    float _tpl_sFrz = (_tpl_frzOK and frz_activeCount > 0) ? tpl_frzScore : -1.0
-    float _tpl_bestScore = math.max(_tpl_sFu, math.max(_tpl_sAtt, _tpl_sFrz))
-    if _tpl_bestScore > 0
-        if _tpl_bestScore == _tpl_sFu
-            tpl_mainTarget := tpl_fuTarget
-            tpl_source     := "FU IMBALANCE"
-            tpl_confidence := tpl_fuScore
-        else if _tpl_bestScore == _tpl_sAtt
-            tpl_mainTarget := tpl_attractorTarget
-            tpl_source     := "ATTRACTOR"
-            tpl_confidence := tpl_attractorScore
-        else
-            tpl_mainTarget := tpl_frzTarget
-            tpl_source     := "FRZ"
-            tpl_confidence := tpl_frzScore
-    // Fallback: if no structural candidate is available, project from the fixed
-    // stack bias so a live destination is ALWAYS shown.
-    if na(tpl_mainTarget)
-        tpl_mainTarget := _tpl_bias == -1 ? close - atr * 5.0 : close + atr * 5.0
-        tpl_source     := "PROJECTION"
-        tpl_confidence := 40.0
+    // ═══ STRUCTURAL DESTINATION ENGINE V2 — aggressive candidate search ═══
+    // Reuses ONLY existing structural objects (FU candles, FRZ zones, liquidity
+    // pools, EAE attractor, prior swing extremes). Generates many candidates,
+    // scores each, takes the ARGMAX, classifies quality, and SUPPRESSES weak
+    // zones (only A+/A++/A+++ become visible).
+    array<float>  dc_px = array.new_float()
+    array<float>  dc_sc = array.new_float()
+    array<string> dc_ty = array.new_string()
+    array<string> dc_cl = array.new_string()
+    // 1) FU candles (+ FU/imbalance overlap, + residual FU) — top structural tier
+    if _tpl_bias != 0 and array.size(fu_top) > 0
+        for _i = 0 to array.size(fu_top) - 1
+            float  _fmid = (array.get(fu_top, _i) + array.get(fu_bot, _i)) / 2.0
+            int    _fdir = array.get(fu_dir, _i)
+            string _fst  = array.get(fu_state, _i)
+            if _fst != "Invalidated" and (_tpl_bias == 1 ? _fmid > close : _fmid < close)
+                float _ov   = (frz_activeCount > 0 and not na(frz_bestZoneMid) and math.abs(_fmid - frz_bestZoneMid) / math.max(atr, 1e-10) < 1.0) ? 12.0 : 0.0
+                float _b    = (_fst == "Fresh" or _fst == "Active") ? 82.0 : _fst == "Interacting" ? 76.0 : 70.0
+                float _dpen = math.min(math.abs(close - _fmid) / math.max(atr, 1e-10) * 2.0, 22.0)
+                float _al   = (_fdir == fractalStackDir and fractalStackDir != 0 ? 8.0 : 0.0) + (_fdir == liveHtfAlign and liveHtfAlign != 0 ? 6.0 : 0.0)
+                array.push(dc_px, _fmid)
+                array.push(dc_sc, math.min(_b + _ov + _al + erf_tradeReadiness * 0.06 - _dpen, 100.0))
+                array.push(dc_ty, _ov > 0 ? "FU + imbalance overlap" : _fst == "Interacting" ? "Residual FU" : "FU candle")
+                array.push(dc_cl, "")
+    // 2) FRZ zones (curated, pre-scored imbalance / return zones)
+    if _tpl_bias != 0 and array.size(frz_topArr) > 0
+        for _i = 0 to array.size(frz_topArr) - 1
+            string _fzst = array.get(frz_statusArr, _i)
+            if _fzst == "Open" or _fzst == "Partial"
+                float _zmid = (array.get(frz_topArr, _i) + array.get(frz_botArr, _i)) / 2.0
+                int   _zdir = array.get(frz_dirArr, _i)
+                if _tpl_bias == 1 ? _zmid > close : _zmid < close
+                    float _zsc  = array.get(frz_scoreArr, _i)
+                    float _dpen = math.min(math.abs(close - _zmid) / math.max(atr, 1e-10) * 2.0, 22.0)
+                    float _al   = (_zdir == fractalStackDir and fractalStackDir != 0 ? 8.0 : 0.0) + (_zdir == liveHtfAlign and liveHtfAlign != 0 ? 6.0 : 0.0)
+                    array.push(dc_px, _zmid)
+                    array.push(dc_sc, math.min(_zsc * 0.85 + _al + erf_tradeReadiness * 0.06 - _dpen, 100.0))
+                    array.push(dc_ty, "FRZ " + array.get(frz_tierArr, _i))
+                    array.push(dc_cl, "")
+    // 3) Liquidity pools (unresolved liquidity in the bias direction)
+    if _tpl_bias != 0 and array.size(liqLevels) > 0
+        for _i = 0 to array.size(liqLevels) - 1
+            float _lpx = array.get(liqLevels, _i)
+            if _tpl_bias == 1 ? _lpx > close : _lpx < close
+                float _lw   = array.get(liqWeights, _i)
+                float _dpen = math.min(math.abs(close - _lpx) / math.max(atr, 1e-10) * 2.0, 22.0)
+                array.push(dc_px, _lpx)
+                array.push(dc_sc, math.min(58.0 + math.min(_lw * 10.0, 18.0) - _dpen, 100.0))
+                array.push(dc_ty, "Liquidity pool")
+                array.push(dc_cl, "")
+    // 4) Prior swing extremes (structural magnets in the bias direction)
+    if _tpl_bias == 1 and not na(currSwingHigh) and currSwingHigh > close
+        array.push(dc_px, currSwingHigh)
+        array.push(dc_sc, math.min(60.0 + (fractalStackDir == 1 ? 8.0 : 0.0) - math.min(math.abs(close - currSwingHigh) / math.max(atr, 1e-10) * 2.0, 22.0), 100.0))
+        array.push(dc_ty, "Prior high")
+        array.push(dc_cl, "")
+    if _tpl_bias == -1 and not na(currSwingLow) and currSwingLow < close
+        array.push(dc_px, currSwingLow)
+        array.push(dc_sc, math.min(60.0 + (fractalStackDir == -1 ? 8.0 : 0.0) - math.min(math.abs(close - currSwingLow) / math.max(atr, 1e-10) * 2.0, 22.0), 100.0))
+        array.push(dc_ty, "Prior low")
+        array.push(dc_cl, "")
+    // 5) EAE flip / residual attractor (LOW base — the weak candidate to demote)
+    if _tpl_attOK
+        array.push(dc_px, tpl_attractorTarget)
+        array.push(dc_sc, math.min(eae_primaryAttractorScore * 0.45 + (eae_primaryAttractorScore >= 70 ? 6.0 : 0.0), 100.0))
+        array.push(dc_ty, "Flip / residual")
+        array.push(dc_cl, "")
+    // Classify every candidate by quality band
+    if array.size(dc_sc) > 0
+        for _i = 0 to array.size(dc_sc) - 1
+            float _s = array.get(dc_sc, _i)
+            array.set(dc_cl, _i, _s >= 92 ? "A+++" : _s >= 85 ? "A++" : _s >= 78 ? "A+" : _s >= 68 ? "A" : _s >= 55 ? "B" : _s >= 40 ? "C" : "Weak")
+    // ARGMAX — highest score wins (no priority / first-found / residual default).
+    // All array.get calls are guarded by size checks (Pine evaluates both sides of
+    // and/ternary, so a -1 index would throw — hence explicit if-blocks).
+    int    _dcN            = array.size(dc_sc)
+    float  dc_bestScore    = 0.0
+    string tpl_winnerClass = "Weak"
+    string dc_primaryStr   = "Scanning - no A-class target"
+    string dc_secondaryStr = "-"
+    string dc_thirdStr     = "-"
+    string dc_scoreboard   = "No structural candidates"
+    bool   dc_aClass       = false
+    tpl_source     := "SCANNING"
+    tpl_confidence := 0.0
+    if _dcN > 0
+        array<int> dc_order = array.sort_indices(dc_sc, order.descending)
+        int _i1 = array.get(dc_order, 0)
+        dc_bestScore    := array.get(dc_sc, _i1)
+        tpl_winnerClass := array.get(dc_cl, _i1)
+        tpl_confidence  := dc_bestScore
+        dc_aClass       := dc_bestScore >= 78
+        if dc_aClass
+            tpl_mainTarget := array.get(dc_px, _i1)
+            tpl_source     := array.get(dc_ty, _i1)
+            dc_primaryStr  := f_v72_px(array.get(dc_px, _i1)) + "\n" + array.get(dc_cl, _i1) + "\n" + array.get(dc_ty, _i1) + "\nScore " + str.tostring(math.round(dc_bestScore))
+        if _dcN > 1
+            int _i2 = array.get(dc_order, 1)
+            if array.get(dc_sc, _i2) >= 78
+                dc_secondaryStr := f_v72_px(array.get(dc_px, _i2)) + "  " + array.get(dc_cl, _i2) + "  " + array.get(dc_ty, _i2) + "  S" + str.tostring(math.round(array.get(dc_sc, _i2)))
+        if _dcN > 2
+            int _i3 = array.get(dc_order, 2)
+            if array.get(dc_sc, _i3) >= 78
+                dc_thirdStr := f_v72_px(array.get(dc_px, _i3)) + "  " + array.get(dc_cl, _i3) + "  " + array.get(dc_ty, _i3) + "  S" + str.tostring(math.round(array.get(dc_sc, _i3)))
+        dc_scoreboard := ""
+        for _k = 0 to math.min(_dcN - 1, 4)
+            int _oi = array.get(dc_order, _k)
+            dc_scoreboard := dc_scoreboard + (_k > 0 ? "\n" : "") + array.get(dc_cl, _oi) + " " + str.tostring(math.round(array.get(dc_sc, _oi))) + "  " + array.get(dc_ty, _oi)
+    // No weak fallback: when no A-class structural zone exists, tpl_mainTarget
+    // stays na and the panel shows "SCANNING" instead of a low-quality projection.
     // ── Opposite-side destination — where price likely heads if the trade TURNS ──
     int    _tpl_rev      = -_tpl_bias
     float  tpl_revFrz    = _tpl_rev == 1 ? frz_bestZoneTop : _tpl_rev == -1 ? frz_bestZoneBot : na
@@ -5600,7 +5687,7 @@ f_v72_run(int _dir3, int _dir4, array<float> _cf, array<int> _ci, array<bool> _c
     float  tpl_altTarget = tpl_altScore <= 0 ? na : tpl_altScore == _tpl_aFrz ? tpl_frzTarget : tpl_altScore == _tpl_aAtt ? tpl_attractorTarget : tpl_fuTarget
     string tpl_altSource = tpl_altScore <= 0 ? "–" : tpl_altScore == _tpl_aFrz ? "FRZ" : tpl_altScore == _tpl_aAtt ? "ATTRACTOR" : "FU IMBALANCE"
     float  tpl_distanceATR = not na(tpl_mainTarget) ? math.abs(close - tpl_mainTarget) / math.max(atr, 1e-10) : na
-    string tpl_status = na(tpl_mainTarget) ? "NO TARGET" : tpl_confidence >= 80 ? "MAGNET ACTIVE" : tpl_confidence >= 60 ? "FORMING" : "WEAK"
+    string tpl_status = na(tpl_mainTarget) ? "SCANNING" : tpl_confidence >= 92 ? "A+++ MAGNET" : tpl_confidence >= 85 ? "A++ MAGNET" : "A+ ACTIVE"
 
     // Live destination line + label (single object, refreshed on the last bar)
     var line  tpl_line  = na
@@ -5637,19 +5724,13 @@ f_v72_run(int _dir3, int _dir4, array<float> _cf, array<int> _ci, array<bool> _c
     // Intrinsic candidate scores — computed independent of the directional
     // eligibility gate so the scoreboard ALWAYS shows numbers (a candidate shows
     // 0 only when it has no data at all, never a blind dash).
-    float _fuIntrinsic  = not na(tpl_fuTarget)              ? math.min(75.0 + tqe_rawScore * 0.20 + (_tpl_fuImbOverlap ? 20.0 : 0.0), 100.0) : 0.0
-    float _attIntrinsic = not na(eae_primaryAttractorPrice) ? math.min(eae_primaryAttractorScore * 0.60 + erf_tradeReadiness * 0.20 + mce_alignmentScore * 0.20, 100.0) : 0.0
-    float _frzIntrinsic = frz_activeCount > 0               ? math.min(frz_bestScore * 0.45 + mce_alignmentScore * 0.25 + erf_tradeReadiness * 0.30, 100.0) : 0.0
-    string tpl_scoreboard = "FU " + str.tostring(math.round(_fuIntrinsic)) + "   ATT " + str.tostring(math.round(_attIntrinsic)) + "   FRZ " + str.tostring(math.round(_frzIntrinsic))
+    // V2 diagnostic scoreboard — top structural candidates (proves winner = max).
+    string tpl_scoreboard = dc_scoreboard
     // Destination friendly type + letter class (from the winning candidate score).
-    string _destType  = tpl_source == "FU IMBALANCE" ? "FU Imbalance" : tpl_source == "ATTRACTOR" ? "Attractor" : tpl_source == "FRZ" ? "FRZ Zone" : "Projection"
-    string _destClass = tpl_confidence >= 85 ? "A+" : tpl_confidence >= 72 ? "A" : tpl_confidence >= 58 ? "B" : tpl_confidence >= 42 ? "C" : "D"
+    string _destType  = tpl_source
+    string _destClass = tpl_winnerClass
     // Multi-line winner reasoning (the fallback projection case is fully expanded).
-    string tpl_reason =
-         tpl_source == "FU IMBALANCE" ? ("FU candle imbalance" + (_tpl_fuImbOverlap ? "\n+ FRZ imbalance overlap" : "") + (mce_htfAlignmentScore >= 60 ? "\nHTF aligned" : "")) :
-         tpl_source == "ATTRACTOR"    ? (eae_primaryAttractorLabel + (mce_alignmentScore >= 60 ? "\nMTF aligned" : "\nresidual energy")) :
-         tpl_source == "FRZ"          ? ("FRZ " + frz_bestZoneTier + (frz_bestStatus == "Open" ? " (open)" : frz_bestStatus == "Partial" ? " (partial)" : "") + (mce_alignmentScore >= 60 ? "\nMTF aligned" : "")) :
-         ("No FU candidate" + (frz_activeCount > 0 ? "" : "\nNo FRZ overlap") + (not na(eae_primaryAttractorPrice) ? "" : "\nNo liquidity target") + "\nFallback projection · " + f_v72_pct(tpl_confidence))
+    string tpl_reason = dc_aClass ? (tpl_winnerClass + " structural zone\n" + tpl_source + (mce_htfAlignmentScore >= 60 ? "\nHTF aligned" : "")) : "No A-class zone yet\nExpanding candidate search\nWeak fallbacks suppressed"
     // Per-timeframe stack alignment (multi-line ✓/✗ vs dominant stack direction).
     string _cmdStackPerTf =
            "M1 "  + (m1_dir == fractalStackDir and fractalStackDir != 0 ? "✓" : "✗")
@@ -5662,10 +5743,17 @@ f_v72_run(int _dir3, int _dir4, array<float> _cf, array<int> _ci, array<bool> _c
          + "\n" + str.tostring(_stackBull) + " Bull   " + str.tostring(_stackBear) + " Bear"
          + "\nAlignment " + str.tostring(math.round(fractalStackScore)) + "%\n" + _cmdStackPerTf
     // HTF Read — multi-line WHY (per-TF wave + consensus verdict + strength %).
-    string _cmdHtfWhy = "H1 " + (l2_dir == 1 ? "Bullish Wave" : l2_dir == -1 ? "Bearish Wave" : "–")
-         + "\nH4 " + (l4_dir == 1 ? "Bullish Wave" : l4_dir == -1 ? "Bearish Wave" : "–")
-         + "\n" + (l2_dir != 0 and l2_dir == l4_dir ? "HTF Consensus" : "No HTF consensus")
-         + "\nStrength " + str.tostring(math.round(mce_htfAlignmentScore)) + "%"
+    // ROTATION STATE (replaces consensus language) — describes pressure transfer
+    // across M15 (l1) -> H1 (l2) -> H4 (l4) in the rotational model.
+    string _rotWave1   = l1_dir == 1 ? "Bullish" : l1_dir == -1 ? "Bearish" : "flat"
+    string _rotWave2   = l2_dir == 1 ? "Bullish" : l2_dir == -1 ? "Bearish" : "flat"
+    string _rotWave4   = l4_dir == 1 ? "Bullish" : l4_dir == -1 ? "Bearish" : "flat"
+    bool   _rotCascade = l1_dir != 0 and l1_dir == l2_dir and l2_dir == l4_dir
+    bool   _rotMature  = l1_dir != 0 and l1_dir == l2_dir and l2_dir != l4_dir
+    bool   _rotActive  = l1_dir != 0 and l2_dir != 0 and l1_dir != l2_dir
+    string _rotState   = _rotCascade ? "FULL CASCADE" : _rotMature ? "ROTATION MATURE" : _rotActive ? "ROTATION ACTIVE" : "ROTATION BUILDING"
+    string _rotPress   = _rotCascade ? "Full rotational alignment" : _rotMature ? "Pressure transferring upward" : _rotActive ? "Pressure transferring" : "Pressure accumulating"
+    string _cmdHtfWhy  = _rotState + "\nM15 " + _rotWave1 + "\nH1 " + _rotWave2 + "\nH4 " + _rotWave4 + "\n" + _rotPress
     // Exec Read — multi-line WHY (M1/M3/M5 words + phase + gate + missing TF).
     string _execMissing =
            (m1_dir != fractalStackDir and fractalStackDir != 0 ? "M1 " : "")
@@ -5686,11 +5774,11 @@ f_v72_run(int _dir3, int _dir4, array<float> _cf, array<int> _ci, array<bool> _c
         table.cell(cmd, 0, 0, "V72 COMMAND", text_color=color.white, bgcolor=color.new(#0a0a30, 0), text_size=_szCmd)
         table.cell(cmd, 1, 0, oppState, text_color=color.black, bgcolor=(oppState == "TRADE ACTIVE" ? #00ff88 : oppState == "PREPARE TO EXECUTE" ? color.lime : oppState == "OPPORTUNITY CONFIRMING" ? color.yellow : oppState == "OPPORTUNITY FORMING" ? color.orange : color.gray), text_size=_szCmd)
         table.cell(cmd, 0, 1, "Bias", text_color=#00ffcc, text_size=_szCmd)
-        table.cell(cmd, 1, 1, doe_bias + " · " + ie1a_currentPhase + " · " + str.tostring(math.round(fractalStackScore)) + "%", text_color=(displayWaveDir_M5 == 1 ? color.lime : displayWaveDir_M5 == -1 ? color.red : color.gray), text_size=_szCmd)
+        table.cell(cmd, 1, 1, doe_bias + " · " + ie1a_currentPhase + " · " + str.tostring(math.round(fractalStackScore)) + "%", text_color=(displayWaveDir_M5 == 1 ? color.lime : displayWaveDir_M5 == -1 ? color.red : color.gray), text_size=size.large)
         table.cell(cmd, 0, 2, "Narrative", text_color=#00ffcc, text_size=_szCmd)
         table.cell(cmd, 1, 2, cmd_narrative, text_color=color.white, text_size=_szCmd)
         table.cell(cmd, 0, 3, "Opportunity", text_color=#00ffcc, text_size=_szCmd)
-        table.cell(cmd, 1, 3, f_v72_pct(oppProgress) + "  " + _cmdOppClass + "  (" + oppState + ")", text_color=(oppProgress >= 85 ? #00ff88 : oppProgress >= 60 ? color.yellow : oppProgress >= 20 ? color.orange : color.gray), text_size=_szCmd)
+        table.cell(cmd, 1, 3, f_v72_pct(oppProgress) + "  " + _cmdOppClass + "  (" + oppState + ")", text_color=(oppProgress >= 85 ? #00ff88 : oppProgress >= 60 ? color.yellow : oppProgress >= 20 ? color.orange : color.gray), text_size=size.large)
         table.cell(cmd, 0, 4, "Confidence", text_color=#00ffcc, text_size=_szCmd)
         table.cell(cmd, 1, 4, f_v72_pct(doe_confidence), text_color=color.white, text_size=_szCmd)
         table.cell(cmd, 0, 5, "Trade Type", text_color=#00ffcc, text_size=_szCmd)
@@ -5700,15 +5788,15 @@ f_v72_run(int _dir3, int _dir4, array<float> _cf, array<int> _ci, array<bool> _c
         table.cell(cmd, 0, 7, "Entry Trigger", text_color=#00ffcc, text_size=_szCmd)
         table.cell(cmd, 1, 7, (oppState == "PREPARE TO EXECUTE" or oppState == "TRADE ACTIVE") ? doe_entryTrigger : "–", text_color=color.silver, text_size=_szCmd)
         table.cell(cmd, 0, 8, "Trade Quality", text_color=#00ffcc, text_size=_szCmd)
-        table.cell(cmd, 1, 8, tqe_grade + " (prov)", text_color=color.black, bgcolor=f_v72_gradeCol(tqe_grade), text_size=_szCmd)
+        table.cell(cmd, 1, 8, tqe_grade + " (prov)", text_color=color.black, bgcolor=f_v72_gradeCol(tqe_grade), text_size=size.large)
         table.cell(cmd, 0, 9, "Risk Level", text_color=#00ffcc, text_size=_szCmd)
         table.cell(cmd, 1, 9, tqe_riskLevel, text_color=f_v72_riskCol(tqe_riskLevel), text_size=_szCmd)
         table.cell(cmd, 0, 10, "TP1", text_color=#00ffcc, text_size=_szCmd)
-        table.cell(cmd, 1, 10, f_v72_px(te_tp1) + "  (" + f_v72_pct(te_tp1_quality) + ")", text_color=color.lime, text_size=_szCmd)
+        table.cell(cmd, 1, 10, f_v72_px(te_tp1) + "  (" + f_v72_pct(te_tp1_quality) + ")", text_color=color.lime, text_size=size.tiny)
         table.cell(cmd, 0, 11, "TP2", text_color=#00ffcc, text_size=_szCmd)
-        table.cell(cmd, 1, 11, f_v72_px(te_tp2) + "  (" + f_v72_pct(te_tp2_quality) + ")", text_color=color.lime, text_size=_szCmd)
+        table.cell(cmd, 1, 11, f_v72_px(te_tp2) + "  (" + f_v72_pct(te_tp2_quality) + ")", text_color=color.lime, text_size=size.tiny)
         table.cell(cmd, 0, 12, "TP3", text_color=#00ffcc, text_size=_szCmd)
-        table.cell(cmd, 1, 12, te_tp3_quality >= 40 ? f_v72_px(te_tp3) + "  (" + f_v72_pct(te_tp3_quality) + ")" : "–", text_color=color.lime, text_size=_szCmd)
+        table.cell(cmd, 1, 12, te_tp3_quality >= 40 ? f_v72_px(te_tp3) + "  (" + f_v72_pct(te_tp3_quality) + ")" : "–", text_color=color.lime, text_size=size.tiny)
         table.cell(cmd, 0, 13, "Stop", text_color=#00ffcc, text_size=_szCmd)
         table.cell(cmd, 1, 13, f_v72_px(inv_activeStop) + (inv_invalidated ? " ✗" : ""), text_color=color.red, text_size=_szCmd)
         table.cell(cmd, 0, 14, "R:R TP1", text_color=#00ffcc, text_size=_szCmd)
@@ -5718,12 +5806,12 @@ f_v72_run(int _dir3, int _dir4, array<float> _cf, array<int> _ci, array<bool> _c
         table.cell(cmd, 0, 16, "ERF Readiness", text_color=#00ffcc, text_size=_szCmd)
         table.cell(cmd, 1, 16, f_v72_pct(erf_tradeReadiness) + (erf_entryGate ? " ✓" : " ✗"), text_color=erf_entryGate ? color.lime : color.orange, text_size=_szCmd)
         table.cell(cmd, 0, 17, "FRZ Distance", text_color=#00ffcc, text_size=_szCmd)
-        table.cell(cmd, 1, 17, na(frz_distanceToZone) ? "–" : f_v72_num(frz_distanceToZone, 2) + " ATR", text_color=color.silver, text_size=_szCmd)
+        table.cell(cmd, 1, 17, na(frz_distanceToZone) ? "–" : f_v72_num(frz_distanceToZone, 2) + " ATR", text_color=color.silver, text_size=size.tiny)
         table.cell(cmd, 0, 18, "Primary Attractor", text_color=#00ffcc, text_size=_szCmd)
         table.cell(cmd, 1, 18, na(eae_primaryAttractorPrice) ? "–" : (f_v72_px(eae_primaryAttractorPrice) + "\n" + eae_primaryAttractorLabel + "\nScore " + str.tostring(math.round(eae_primaryAttractorScore)) + "\n" + (frz_activeCount > 0 or not na(tpl_fuTarget) ? "Structural candidate present" : "Residual liquidity\nNo structural candidate")), text_color=color.aqua, text_size=_szCmd)
         table.cell(cmd, 0, 19, "Convergence", text_color=#00ffcc, text_size=_szCmd)
         table.cell(cmd, 1, 19, frz_attractorConvergence ? "● ACTIVE" : "○ none", text_color=frz_attractorConvergence ? #00ffcc : color.gray, text_size=_szCmd)
-        table.cell(cmd, 0, 20, "HTF Read", text_color=#00ffcc, text_size=_szCmd)
+        table.cell(cmd, 0, 20, "ROTATION", text_color=#00ffcc, text_size=_szCmd)
         table.cell(cmd, 1, 20, _cmdHtfWhy, text_color=color.silver, text_size=_szCmd)
         table.cell(cmd, 0, 21, "Exec Read", text_color=#00ffcc, text_size=_szCmd)
         table.cell(cmd, 1, 21, _cmdExecWhy, text_color=color.silver, text_size=_szCmd)
@@ -5732,17 +5820,19 @@ f_v72_run(int _dir3, int _dir4, array<float> _cf, array<int> _ci, array<bool> _c
              text_color=fractalStackScore >= 80 ? #00ff88 : fractalStackScore >= 60 ? color.yellow : color.silver,
              text_size=_szCmd)
         table.cell(cmd, 0, 23, "DESTINATION", text_color=color.black, bgcolor=color.new(color.yellow, 0), text_size=_szCmd)
-        table.cell(cmd, 1, 23, na(tpl_mainTarget) ? "–" : (f_v72_px(tpl_mainTarget) + "\n" + _destType + "\n" + tpl_status + "\nScore " + str.tostring(math.round(tpl_confidence)) + "\nClass " + _destClass), text_color=color.black, bgcolor=(tpl_status == "MAGNET ACTIVE" ? #00ff88 : tpl_status == "FORMING" ? color.yellow : color.gray), text_size=_szCmd)
+        table.cell(cmd, 1, 23, dc_primaryStr, text_color=color.black, bgcolor=(not dc_aClass ? color.gray : tpl_confidence >= 92 ? #00ff88 : tpl_confidence >= 85 ? color.lime : color.yellow), text_size=size.normal)
         table.cell(cmd, 0, 24, "Dest Source", text_color=#00ffcc, text_size=_szCmd)
         table.cell(cmd, 1, 24, tpl_source + "\n" + tpl_reason, text_color=color.silver, text_size=_szCmd)
         table.cell(cmd, 0, 25, "Dest Dist", text_color=#00ffcc, text_size=_szCmd)
         table.cell(cmd, 1, 25, na(tpl_distanceATR) ? "–" : (str.tostring(tpl_distanceATR, "#.0") + " ATR  " + tpl_status), text_color=color.white, text_size=_szCmd)
-        table.cell(cmd, 0, 26, "Dest Alt", text_color=#00ffcc, text_size=_szCmd)
-        table.cell(cmd, 1, 26, na(tpl_altTarget) ? "–" : (f_v72_px(tpl_altTarget) + " (" + tpl_altSource + ")"), text_color=color.silver, text_size=_szCmd)
+        table.cell(cmd, 0, 26, "Secondary", text_color=#00ffcc, text_size=_szCmd)
+        table.cell(cmd, 1, 26, dc_secondaryStr, text_color=color.silver, text_size=_szCmd)
         table.cell(cmd, 0, 27, "Rev Dest", text_color=color.orange, text_size=_szCmd)
         table.cell(cmd, 1, 27, not showV72RevDest ? "(off)" : na(tpl_revTarget) ? "–" : (f_v72_px(tpl_revTarget) + " (" + tpl_revSource + ")"), text_color=color.orange, text_size=_szCmd)
         table.cell(cmd, 0, 28, "Cand Scores", text_color=#00ffcc, text_size=_szCmd)
         table.cell(cmd, 1, 28, tpl_scoreboard, text_color=color.silver, text_size=_szCmd)
+        table.cell(cmd, 0, 29, "Third", text_color=#00ffcc, text_size=_szCmd)
+        table.cell(cmd, 1, 29, dc_thirdStr, text_color=color.silver, text_size=_szCmd)
     0
 
 // ── Run the V72 engine once per bar ──────────────────────────────────────────
