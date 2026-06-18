@@ -5552,6 +5552,10 @@ f_v72_run(int _dir3, int _dir4, array<float> _cf, array<int> _ci, array<bool> _c
     float  dc_bestScore    = 0.0
     float  dc_bestPrice    = na
     string dc_bestType     = "-"
+    float  dc_price2       = na
+    float  dc_price3       = na
+    string dc_lbl2         = ""
+    string dc_lbl3         = ""
     string tpl_winnerClass = "Weak"
     string dc_primaryStr   = "No destination yet"
     string dc_secondaryStr = "-"
@@ -5575,10 +5579,14 @@ f_v72_run(int _dir3, int _dir4, array<float> _cf, array<int> _ci, array<bool> _c
             dc_primaryStr  := f_v72_px(dc_bestPrice) + "\n" + tpl_winnerClass + " quality\n" + dc_bestType + "\nScore " + str.tostring(math.round(dc_bestScore))
         if _dcN > 1
             int _i2 = array.get(dc_order, 1)
+            dc_price2 := array.get(dc_px, _i2)
+            dc_lbl2   := array.get(dc_cl, _i2) + " " + array.get(dc_ty, _i2)
             if array.get(dc_sc, _i2) >= 55
                 dc_secondaryStr := f_v72_px(array.get(dc_px, _i2)) + "  " + array.get(dc_cl, _i2) + "  " + array.get(dc_ty, _i2) + "  S" + str.tostring(math.round(array.get(dc_sc, _i2)))
         if _dcN > 2
             int _i3 = array.get(dc_order, 2)
+            dc_price3 := array.get(dc_px, _i3)
+            dc_lbl3   := array.get(dc_cl, _i3) + " " + array.get(dc_ty, _i3)
             if array.get(dc_sc, _i3) >= 55
                 dc_thirdStr := f_v72_px(array.get(dc_px, _i3)) + "  " + array.get(dc_cl, _i3) + "  " + array.get(dc_ty, _i3) + "  S" + str.tostring(math.round(array.get(dc_sc, _i3)))
         dc_scoreboard := ""
@@ -5593,19 +5601,35 @@ f_v72_run(int _dir3, int _dir4, array<float> _cf, array<int> _ci, array<bool> _c
     float  tpl_distanceATR = not na(tpl_mainTarget) ? math.abs(close - tpl_mainTarget) / math.max(atr, 1e-10) : na
     string tpl_status = na(tpl_mainTarget) ? "RANGEBOUND" : tpl_winnerClass + " MAGNET"
 
-    // Live destination line + label (single object, refreshed on the last bar)
+    // Top-3 most-probable destination zones drawn ON the chart (always visible)
     var line  tpl_line  = na
     var label tpl_label = na
+    var line  dc_line2  = na
+    var label dc_lab2   = na
+    var line  dc_line3  = na
+    var label dc_lab3   = na
     if barstate.islast and showV72Destination
         if not na(tpl_line)
             line.delete(tpl_line)
         if not na(tpl_label)
             label.delete(tpl_label)
-        if not na(tpl_mainTarget)
-            tpl_line := line.new(bar_index, tpl_mainTarget, bar_index + 50, tpl_mainTarget, width=3, color=color.new(color.yellow, 0))
-            tpl_label := label.new(bar_index + 50, tpl_mainTarget,
-                 "DESTINATION\n" + str.tostring(math.round_to_mintick(tpl_mainTarget)) + "\n" + tpl_source + "  " + str.tostring(math.round(tpl_confidence)) + "%",
-                 style=label.style_label_left, color=color.new(#0a0a30, 0), textcolor=color.yellow, size=size.small)
+        if not na(dc_line2)
+            line.delete(dc_line2)
+        if not na(dc_lab2)
+            label.delete(dc_lab2)
+        if not na(dc_line3)
+            line.delete(dc_line3)
+        if not na(dc_lab3)
+            label.delete(dc_lab3)
+        if not na(dc_bestPrice)
+            tpl_line  := line.new(bar_index, dc_bestPrice, bar_index + 60, dc_bestPrice, width=3, color=color.new(#ffd000, 0))
+            tpl_label := label.new(bar_index + 60, dc_bestPrice, "1  " + dc_bestType + "  " + tpl_winnerClass + "  " + str.tostring(math.round_to_mintick(dc_bestPrice)), style=label.style_label_left, color=color.new(#0a0a30, 0), textcolor=#ffd000, size=size.small)
+        if not na(dc_price2)
+            dc_line2 := line.new(bar_index, dc_price2, bar_index + 60, dc_price2, width=2, color=color.new(#00d0ff, 20), style=line.style_dashed)
+            dc_lab2  := label.new(bar_index + 60, dc_price2, "2  " + dc_lbl2 + "  " + str.tostring(math.round_to_mintick(dc_price2)), style=label.style_label_left, color=color.new(#0a0a30, 0), textcolor=#00d0ff, size=size.tiny)
+        if not na(dc_price3)
+            dc_line3 := line.new(bar_index, dc_price3, bar_index + 60, dc_price3, width=1, color=color.new(#a0a0c0, 30), style=line.style_dotted)
+            dc_lab3  := label.new(bar_index + 60, dc_price3, "3  " + dc_lbl3 + "  " + str.tostring(math.round_to_mintick(dc_price3)), style=label.style_label_left, color=color.new(#0a0a30, 0), textcolor=#a0a0c0, size=size.tiny)
 
     // Opposite-side destination line (dotted, dim) — shown only if toggled
     var line  tpl_revLine  = na
@@ -5705,16 +5729,21 @@ f_v72_run(int _dir3, int _dir4, array<float> _cf, array<int> _ci, array<bool> _c
     string threat_show  = threat_list == "" ? "✓ Clear - no active threats" : threat_list
     // ── DESTINATION WAR winner state ──
     string war_state = tpl_winnerClass == "A+++" or tpl_winnerClass == "A++" ? "MAGNET" : tpl_winnerClass == "A+" or tpl_winnerClass == "A" ? "COMPETING" : na(dc_bestPrice) ? "NONE" : "UNSTABLE"
+    // ── ENERGY NETWORK / TIMELINE states ──
+    string energy_state   = _rotCascade ? "PEAK" : _rotMature ? "TRANSFER" : _rotActive ? "BUILDING" : "DORMANT"
+    string timeline_state = (ie1a_currentPhase == "Expansion" or ie1a_currentPhase == "New High" or ie1a_currentPhase == "New Low") ? "ACCELERATING" : ie1a_currentPhase == "Absorption" ? "PEAKING" : (ie1a_currentPhase == "Retracement" or ie1a_currentPhase == "Demand Return" or ie1a_currentPhase == "Supply Return") ? "TRANSITIONING" : "CONTINUING"
+    string timeline_eta   = na(tpl_distanceATR) ? "target forming" : str.tostring(tpl_distanceATR, "#.0") + " ATR to destination"
 
     // ── V72.12 Dashboards ────────────────────────────────────────────────────
     if barstate.islast and showTable and showV72Command
-        var table mosStory = table.new(position.top_center, 1, 6, bgcolor=color.new(#0b0b1c, 6), frame_color=color.new(#00e5ff, 25), frame_width=2, border_width=0)
+        var table mosStory = table.new(position.top_center, 1, 7, bgcolor=color.new(#0b0b1c, 6), frame_color=color.new(#00e5ff, 25), frame_width=2, border_width=0)
         table.cell(mosStory, 0, 0, "════════  MARKET STORY  ════════", text_color=#00ffcc, text_size=size.normal)
         table.cell(mosStory, 0, 1, story_now,     text_color=color.white,  text_size=size.normal)
         table.cell(mosStory, 0, 2, story_why,     text_color=color.silver, text_size=size.small)
         table.cell(mosStory, 0, 3, story_dest,    text_color=color.aqua,   text_size=size.small)
         table.cell(mosStory, 0, 4, story_threat,  text_color=(inv_invalidated ? color.red : color.orange), text_size=size.small)
         table.cell(mosStory, 0, 5, story_outlook, text_color=(oppProgress >= 60 ? color.lime : color.yellow), text_size=size.small)
+        table.cell(mosStory, 0, 6, "WAVE   " + cmd_narrative, text_color=#9fb0d8, text_size=size.small)
 
         // ── SECTION 2: CONTROL MATRIX (top left) — who holds authority ──
         var table mosCtl = table.new(position.top_left, 1, 8, bgcolor=color.new(#0b0b1c, 6), frame_color=color.new(#00e5ff, 25), frame_width=2, border_width=0)
@@ -5749,6 +5778,29 @@ f_v72_run(int _dir3, int _dir4, array<float> _cf, array<int> _ci, array<bool> _c
         table.cell(mosCop, 0, 3, "NEXT      " + cop_next, text_color=color.aqua, text_size=size.small)
         table.cell(mosCop, 0, 4, "THREAT    " + story_threat, text_color=color.orange, text_size=size.small)
         table.cell(mosCop, 0, 5, "ACTION    " + cop_action, text_color=color.lime, text_size=size.small)
+
+        // ── SECTION 3: ENERGY NETWORK (middle left) — pressure flow ──
+        var table mosEng = table.new(position.middle_left, 1, 5, bgcolor=color.new(#0b0b1c, 6), frame_color=color.new(#00e5ff, 25), frame_width=2, border_width=0)
+        table.cell(mosEng, 0, 0, "═══  ENERGY  ═══", text_color=#00e5ff, text_size=size.small)
+        table.cell(mosEng, 0, 1, "Transfer " + f_mosBar(rot_transferProbability), text_color=#5ad1ff, text_size=size.small)
+        table.cell(mosEng, 0, 2, "Control  " + f_mosBar(rot_controlStability), text_color=#5ad1ff, text_size=size.small)
+        table.cell(mosEng, 0, 3, "Flow  " + control_transfer, text_color=color.white, text_size=size.small)
+        table.cell(mosEng, 0, 4, "State " + energy_state, text_color=(_rotCascade or _rotMature ? #5aff9e : #ffe05a), text_size=size.small)
+
+        // ── SECTION 6: OPPORTUNITY REACTOR (middle right) ──
+        var table mosRct = table.new(position.middle_right, 1, 5, bgcolor=color.new(#0b0b1c, 6), frame_color=color.new(#00e5ff, 25), frame_width=2, border_width=0)
+        table.cell(mosRct, 0, 0, "═══  OPPORTUNITY  ═══", text_color=#00e5ff, text_size=size.small)
+        table.cell(mosRct, 0, 1, f_mosBar(oppProgress), text_color=(oppProgress >= 60 ? #5aff9e : oppProgress >= 20 ? #ffe05a : color.gray), text_size=size.small)
+        table.cell(mosRct, 0, 2, oppState, text_color=color.white, text_size=size.small)
+        table.cell(mosRct, 0, 3, "Quality " + tqe_grade, text_color=#5ad1ff, text_size=size.small)
+        table.cell(mosRct, 0, 4, _cmdOppClass, text_color=#9fb0d8, text_size=size.small)
+
+        // ── SECTION 8: TIMELINE (bottom center) ──
+        var table mosTl = table.new(position.bottom_center, 1, 4, bgcolor=color.new(#0b0b1c, 6), frame_color=color.new(#00e5ff, 25), frame_width=2, border_width=0)
+        table.cell(mosTl, 0, 0, "═══  TIMELINE  ═══", text_color=#00e5ff, text_size=size.small)
+        table.cell(mosTl, 0, 1, "Now: " + ie1a_currentPhase, text_color=color.white, text_size=size.small)
+        table.cell(mosTl, 0, 2, timeline_state + "   " + timeline_eta, text_color=#5ad1ff, text_size=size.small)
+        table.cell(mosTl, 0, 3, "ORIGIN > RETURN > EXPANSION > EXHAUSTION > REVERSAL", text_color=#7a86a8, text_size=size.tiny)
     0
 
 // ── Run the V72 engine once per bar ──────────────────────────────────────────
