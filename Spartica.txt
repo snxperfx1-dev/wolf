@@ -5545,10 +5545,10 @@ f_v72_run(int _dir3, int _dir4, array<float> _cf, array<int> _ci, array<bool> _c
     string _mosDestPx = na(dc_bestPrice) ? "" : f_v72_px(dc_bestPrice)
     string _mosRetPx  = not na(frz_bestZoneMid) ? f_v72_px(frz_bestZoneMid) : not na(eae_primaryAttractorPrice) ? f_v72_px(eae_primaryAttractorPrice) : not na(point4OriginLow) ? f_v72_px(displayWaveDir_M5 == -1 ? point4OriginHigh : point4OriginLow) : "the return zone"
     string _mosStopPx = na(inv_activeStop) ? "the invalidation level" : f_v72_px(inv_activeStop)
-    string story_now    = ie1a_currentPhase + " is the active phase and " + _mosSide + " hold the initiative."
+    string story_now    = currentDisplayPhase + " is the active phase and " + _mosSide + " hold the initiative."
     string story_why    = _rotState == "FULL CASCADE"   ? "All timeframes are aligned and pressure flows one way." : _rotState == "ROTATION MATURE" ? "Pressure is transferring up the timeframes; the move is maturing." : _rotState == "ROTATION ACTIVE" ? "Control is rotating between timeframes as pressure transfers." : "Pressure is still accumulating before a clear transfer."
     string story_dest   = not na(dc_bestPrice) ? ("Price is being drawn toward " + _mosDestPx + " - the " + dc_bestType + " (" + tpl_winnerClass + " quality).") : "No destination has formed; the market is rangebound."
-    string story_threat = inv_invalidated ? ("Structure is invalidated; a break of " + _mosStopPx + " ends continuation.") : (displayWaveDir_H1 != 0 and displayWaveDir_H1 != displayWaveDir_M5) ? "H1 disagrees with the execution wave - the main risk to continuation." : ("Continuation holds while price stays beyond " + _mosStopPx + ".")
+    string story_threat = inv_invalidated ? ("Structure is invalidated; a break of " + _mosStopPx + " ends continuation.") : (liqg_active and not (liqg_objArrival and liqg_trueCHoCH)) ? ("Objective at " + (na(liqg_target) ? "target" : f_v72_px(liqg_target)) + " not yet reached - reversal unconfirmed.") : _ep_conflict ? "LTF stack is in conflict with HTF - elevated reversal risk." : (displayWaveDir_H1 != 0 and displayWaveDir_H1 != displayWaveDir_M5) ? "H1 disagrees with the execution wave - the main risk to continuation." : ("Continuation holds while price stays beyond " + _mosStopPx + ".")
     string story_outlook= oppState == "TRADE ACTIVE" ? "A live opportunity is in play." : oppState == "PREPARE TO EXECUTE" ? ("Conditions are lining up for entry near " + _mosRetPx + ".") : oppProgress >= 20 ? "An opportunity is developing but unconfirmed." : "Best to stand aside until structure improves."
     string cop_next     = not na(dc_bestPrice) ? ((displayWaveDir_M5 == 1 ? "Upside" : displayWaveDir_M5 == -1 ? "Downside" : "Movement") + " toward " + _mosDestPx + " stays favoured while " + _mosStopPx + " holds.") : "Direction stays unresolved until a wave takes control."
     string cop_action   = (oppState == "PREPARE TO EXECUTE" or oppState == "TRADE ACTIVE") ? ("Act if price reacts at " + _mosRetPx + "; invalidation at " + _mosStopPx + ".") : ("Wait for price to reach " + _mosRetPx + " before committing.")
@@ -5564,15 +5564,15 @@ f_v72_run(int _dir3, int _dir4, array<float> _cf, array<int> _ci, array<bool> _c
     string control_transfer  = _rotCascade ? "FULL CASCADE" : _rotMature ? "TRANSFER UPWARD" : _rotActive ? "ROTATING" : "FORMING"
     // ── THREAT MATRIX ──
     bool   _thrH1   = displayWaveDir_H1 != 0 and displayWaveDir_H1 != displayWaveDir_M5
-    int    _thrCnt  = (inv_invalidated ? 1 : 0) + (_thrH1 ? 1 : 0) + (not erf_entryGate ? 1 : 0)
+    int    _thrCnt  = (inv_invalidated ? 1 : 0) + (_thrH1 ? 1 : 0) + (not erf_entryGate ? 1 : 0) + (_ep_conflict ? 1 : 0)
     string threat_state = _thrCnt == 0 ? "CLEAR" : _thrCnt == 1 ? "CAUTION" : _thrCnt == 2 ? "ELEVATED" : "DANGER"
-    string threat_list  = (inv_invalidated ? "⚠ Structure invalidated\n" : "") + (_thrH1 ? "⚠ H1 disagreement\n" : "") + (not erf_entryGate ? "⚠ Entry gate closed\n" : "")
+    string threat_list  = (inv_invalidated ? "⚠ Structure invalidated\n" : "") + (_ep_conflict ? "⚠ HTF/LTF conflict\n" : "") + (_thrH1 ? "⚠ H1 disagreement\n" : "") + (not erf_entryGate ? "⚠ Entry gate closed\n" : "")
     string threat_show  = threat_list == "" ? "✓ Clear - no active threats" : threat_list
     // ── DESTINATION WAR winner state ──
-    string war_state = tpl_winnerClass == "A+++" or tpl_winnerClass == "A++" ? "MAGNET" : tpl_winnerClass == "A+" or tpl_winnerClass == "A" ? "COMPETING" : na(dc_bestPrice) ? "NONE" : "UNSTABLE"
+    string war_state = liqg_objArrival ? "OBJECTIVE REACHED" : liqg_active ? "LIQUIDATING" : tpl_winnerClass == "A+++" or tpl_winnerClass == "A++" ? "MAGNET" : tpl_winnerClass == "A+" or tpl_winnerClass == "A" ? "COMPETING" : na(dc_bestPrice) ? "NONE" : "UNSTABLE"
     // ── ENERGY NETWORK / TIMELINE states ──
     string energy_state   = _rotCascade ? "PEAK" : _rotMature ? "TRANSFER" : _rotActive ? "BUILDING" : "DORMANT"
-    string timeline_state = (ie1a_currentPhase == "Expansion" or ie1a_currentPhase == "New High" or ie1a_currentPhase == "New Low") ? "ACCELERATING" : ie1a_currentPhase == "Absorption" ? "PEAKING" : (ie1a_currentPhase == "Retracement" or ie1a_currentPhase == "Demand Return" or ie1a_currentPhase == "Supply Return") ? "TRANSITIONING" : "CONTINUING"
+    string timeline_state = liqg_objArrival ? "PEAKING" : liqg_active ? "ACCELERATING" : (ie1a_currentPhase == "Expansion" or ie1a_currentPhase == "New High" or ie1a_currentPhase == "New Low") ? "ACCELERATING" : ie1a_currentPhase == "Absorption" ? "PEAKING" : (ie1a_currentPhase == "Retracement" or ie1a_currentPhase == "Demand Return" or ie1a_currentPhase == "Supply Return") ? "TRANSITIONING" : "CONTINUING"
     string timeline_eta   = na(tpl_distanceATR) ? "target forming" : str.tostring(tpl_distanceATR, "#.0") + " ATR to destination"
     // ── COMMANDER verdict + EXECUTION copilot (the trader) ──
     string mos_commander = oppState == "TRADE ACTIVE" ? "ATTACK" : oppState == "PREPARE TO EXECUTE" ? ("PREPARE " + (displayWaveDir_M5 == 1 ? "LONG" : displayWaveDir_M5 == -1 ? "SHORT" : "")) : inv_invalidated ? "STAND DOWN" : threat_state == "DANGER" ? "REDUCE RISK" : oppProgress >= 20 ? "WAIT" : "STAND DOWN"
