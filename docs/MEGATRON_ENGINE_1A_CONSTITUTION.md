@@ -1096,3 +1096,51 @@ liquidation wave dominates the displayed narrative and DOE-facing story until
 arrival + true CHoCH), not by rewriting the upstream `f_se` phase assignment. A
 full upstream gate requires the source reorder described in Part 1 and is
 deferred to the implementation phase of the constitution.
+
+
+
+---
+
+# CHART LABEL PHASE AUTHORITY — IMPLEMENTATION NOTE
+
+**Implemented** in `Spartica.txt` as a single global authority (after
+`convexityMaturity` is finalised, ~line 1661) so that **both** the on-chart
+labels (drawn mid-file) and the late MOS panels (in `f_v72_run`) consume **one**
+string. Nothing canonical was removed.
+
+**Single owner of the visible phase string:** `currentDisplayPhase`.
+- When the liquidation overlay is active: `liqg_title • liqg_subPhase`
+  (e.g. `Pre-New High Liquidation Wave • Displacement`).
+- Otherwise: `ie1a_currentPhase` (canonical M5).
+- **Absorption gate:** the overlay stays in control through the two Induction
+  phases until `liqg_objArrival ∧ liqg_trueCHoCH`, so the visible string cannot
+  read "Absorption" while the objective wave is still in progress.
+
+**Consumers re-pointed to the single authority:**
+- On-chart M5 trace label (`_l0txt = "M5 · " + liqg_readout`) — now shows
+  Direction · Phase [· Substate] · Target · Distance · Arrival.
+- P3 Wave Narrative M5 row (`narr_primary`).
+- MOS Market Story headline + readout row.
+- MOS Copilot "CURRENT".
+
+**Authority physics (early-available consensus):** EDE dissipation, RE
+resolution, geometric/convexity capacity, momentum efficiency, and the M5
+structural objective (`se5_tgt`) for distance compression. The late
+FRZ/DOM/rotation engines still refine the DOE/destination panels downstream but
+do **not** reclassify this authority.
+
+### Honest scope boundary (what is NOT yet done)
+- **Per-timeframe rows (M1/M3/M15/H1/H4)** still display their own engine's
+  phase (consistent with the Multi-Timeframe Label rule that each TF shows its
+  own state). They are not yet routed through a per-TF liquidation overlay.
+- **Execution Probability / waveAgreement / Fusion** still use the legacy
+  stack-score model (audit Phases 8–9). They are not yet re-pointed to
+  `currentDisplayPhase`.
+- The **upstream `f_se` phase latch and its event/score shortcuts still exist**
+  underneath as structural evidence; `currentDisplayPhase` overlays the 3-D /
+  liquidation-aware projection on top. A true removal of the upstream shortcuts
+  requires the physics-before-phase source reorder described in Part 1, which is
+  deferred (cannot be validated without compilation).
+- Cannot compile here — verified statically (identifier scope, no orphaned refs,
+  function integrity). If a token-limit error (CE10117) appears, a dead-code
+  trim pass is required before further additions.
