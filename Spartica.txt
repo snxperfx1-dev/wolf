@@ -229,6 +229,11 @@ f_mosBar(float _pct) =>
     int _n = math.round(math.min(math.max(_pct, 0.0), 100.0) / 10.0)
     str.repeat("█", _n) + str.repeat("░", 10 - _n)
 
+// Dynamic per-TF wave progress: distance consumed from that TF's origin toward its
+// target (0-100). Physics/distance based — never a static phase-count lookup.
+f_tfProg(float _orig, float _tgt) =>
+    (not na(_orig) and not na(_tgt) and math.abs(_tgt - _orig) > 1e-10) ? math.min(100.0, math.abs(close - _orig) / math.abs(_tgt - _orig) * 100.0) : na
+
 // Compact phase abbreviation for on-chart labels (keeps the chart uncluttered).
 f_phaseAbbr(string _p) =>
     str.contains(_p, "Liquidation Wave") ? "LQW" :
@@ -4060,23 +4065,28 @@ f_renderDashP3() =>
             f_sep2(dashP3, _rpR, "MULTI-LEVEL WAVE PROGRESS", _ts)
             _rpR := _rpR + 1
             table.cell(dashP3, 2, _rpR, "M1", text_color=color.silver, text_size=_szA)
-            table.cell(dashP3, 3, _rpR, m1_phaseCanon + "  " + f_mosBar(nz(se1_wp)) + " " + str.tostring(math.round(nz(se1_wp))) + "%", text_color=color.gray, text_size=_szA)
+            float _p1 = nz(f_tfProg(se1_inv, se1_tgt), nz(se1_wp))
+            table.cell(dashP3, 3, _rpR, m1_phaseCanon + "  " + f_mosBar(_p1) + " " + str.tostring(math.round(_p1)) + "%", text_color=color.gray, text_size=_szA)
             _rpR := _rpR + 1
             table.cell(dashP3, 2, _rpR, "M3", text_color=color.silver, text_size=_szA)
-            table.cell(dashP3, 3, _rpR, l3_phaseCanon + "  " + f_mosBar(l3_waveProgress) + " " + str.tostring(math.round(l3_waveProgress)) + "%", text_color=color.new(#c084fc, 0), text_size=_szA)
+            float _p3 = nz(f_tfProg(se3_inv, se3_tgt), nz(l3_waveProgress))
+            table.cell(dashP3, 3, _rpR, l3_phaseCanon + "  " + f_mosBar(_p3) + " " + str.tostring(math.round(_p3)) + "%", text_color=color.new(#c084fc, 0), text_size=_szA)
             _rpR := _rpR + 1
             table.cell(dashP3, 2, _rpR, "M5", text_color=color.silver, text_size=_szA)
             float _m5Prog = phaseProgress
             table.cell(dashP3, 3, _rpR, currentDisplayPhase + "  " + f_mosBar(_m5Prog) + " " + str.tostring(math.round(_m5Prog)) + "%", text_color=color.lime, text_size=_szA)
             _rpR := _rpR + 1
             table.cell(dashP3, 2, _rpR, "M15", text_color=color.silver, text_size=_szA)
-            table.cell(dashP3, 3, _rpR, l1_phaseCanon + "  " + f_mosBar(l1_waveProgress) + " " + str.tostring(math.round(l1_waveProgress)) + "%", text_color=color.aqua, text_size=_szA)
+            float _p15 = nz(f_tfProg(se15_inv, se15_tgt), nz(l1_waveProgress))
+            table.cell(dashP3, 3, _rpR, l1_phaseCanon + "  " + f_mosBar(_p15) + " " + str.tostring(math.round(_p15)) + "%", text_color=color.aqua, text_size=_szA)
             _rpR := _rpR + 1
             table.cell(dashP3, 2, _rpR, "H1", text_color=color.silver, text_size=_szA)
-            table.cell(dashP3, 3, _rpR, l2_phaseCanon + "  " + f_mosBar(l2_waveProgress) + " " + str.tostring(math.round(l2_waveProgress)) + "%", text_color=color.yellow, text_size=_szA)
+            float _p60 = nz(f_tfProg(se60_inv, se60_tgt), nz(l2_waveProgress))
+            table.cell(dashP3, 3, _rpR, l2_phaseCanon + "  " + f_mosBar(_p60) + " " + str.tostring(math.round(_p60)) + "%", text_color=color.yellow, text_size=_szA)
             _rpR := _rpR + 1
             table.cell(dashP3, 2, _rpR, "H4", text_color=color.silver, text_size=_szA)
-            table.cell(dashP3, 3, _rpR, l4_phaseCanon + "  " + f_mosBar(nz(se240_wp)) + " " + str.tostring(math.round(nz(se240_wp))) + "%", text_color=color.new(color.orange, 0), text_size=_szA)
+            float _p240 = nz(f_tfProg(se240_inv, se240_tgt), nz(se240_wp))
+            table.cell(dashP3, 3, _rpR, l4_phaseCanon + "  " + f_mosBar(_p240) + " " + str.tostring(math.round(_p240)) + "%", text_color=color.new(color.orange, 0), text_size=_szA)
             _rpR := _rpR + 1
 
 f_renderDashP3()
