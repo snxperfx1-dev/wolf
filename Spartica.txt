@@ -1,5 +1,5 @@
 //@version=6
-indicator("Letra 4", overlay=true, max_lines_count=500, max_labels_count=500, max_boxes_count=500, max_polylines_count=100)
+indicator("Letra 5", overlay=true, max_lines_count=500, max_labels_count=500, max_boxes_count=500, max_polylines_count=100)
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SECTION 1 — INPUT GROUPS
@@ -3414,8 +3414,8 @@ string die_narrative    = ie1a_hypFamily    // belief-family string from IE1A
 string die_narrativeDir = currentDisplayPhase // single Engine 1A display authority (canonical + liquidation substate)
 
 var string die_lastNarrative = ""
-bool die_narrativeChanged = die_narrative != die_lastNarrative
-die_lastNarrative := die_narrative
+bool die_narrativeChanged = currentDisplayPhase != die_lastNarrative
+die_lastNarrative := currentDisplayPhase
 
 color die_narrCol =
      die_narrative == "EXPANSION"         ? color.lime   :
@@ -3436,7 +3436,7 @@ bool die_narrativeVisible =
 if showNarrative and die_narrativeChanged and direction != 0 and f_die_show(80) and die_narrativeVisible
     label.new(bar_index,
          direction == 1 ? high + atr * 1.2 : low - atr * 1.2,
-         f_phaseAbbr(die_narrativeDir),
+         die_narrativeDir,
          style=direction == 1 ? label.style_label_down : label.style_label_up,
          color=color.new(die_narrCol, 40), textcolor=color.black, size=size.tiny)
     die_labelCount := die_labelCount + 1
