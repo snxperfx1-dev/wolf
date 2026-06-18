@@ -1176,3 +1176,24 @@ Additive, on the compiling baseline. No canonical logic removed.
 - **ExecProb / Fusion / waveAgreement** still legacy stack-score; not yet routed
   to `currentDisplayPhase`.
 - Non-liquidation **progress** for M1/M3/M15/H1/H4 still static `_wp`.
+
+
+
+---
+
+# AUTHORITY WIRING — BATCH 3 (dynamic confidence / integrity)
+
+- **`phaseConfidence`** is now a genuine **3-D agreement** metric (agreement
+  quality, not a score threshold): Structure (wave holds its M5 origin) +
+  Momentum (travelling with the wave) + Physics (energy not yet
+  resolved/dissipated), each contributing equally → 0/33/34/67/100.
+- **`phaseIntegrity`** = blend of `phaseConfidence` and remaining energy
+  (`100 − ede_dissipationProgress`) — "how healthy is the current phase."
+- Both are surfaced on the M5 label / Market Story readout (`Conf NN%  Integ
+  NN%`), and **`doe_confidence` now consumes `phaseConfidence`** in place of the
+  old model-fit proxy — so the decision engine's confidence reflects live 3-D
+  agreement.
+
+Still deferred (compile-checked iteration required): physics-before-phase source
+reorder (canonical phase 3-D), per-TF liquidation overlays, ExecProb/Fusion
+re-pointing, non-liquidation dynamic progress.

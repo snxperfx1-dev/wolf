@@ -1723,8 +1723,16 @@ if liqg_active and ((liqg_objArrival and liqg_trueCHoCH) or ie1a_currentPhase ==
 string currentDisplayPhase = liqg_active ? (liqg_title + (liqg_subPhase != "" ? " • " + liqg_subPhase : "")) : ie1a_currentPhase
 string _cdpDir   = displayWaveDir_M5 == 1 ? "Bullish" : displayWaveDir_M5 == -1 ? "Bearish" : "Neutral"
 string liqg_arrTx = liqg_objArrival ? "Yes" : (not na(liqg_distPct) and liqg_distPct < 12) ? "Imminent" : "No"
-// Full chart-label projection (Direction · Phase [· Substate] · Target · Distance · Arrival)
-string liqg_readout = _cdpDir + " · " + currentDisplayPhase + (liqg_active ? ("\nTarget " + (na(liqg_target) ? "forming" : str.tostring(math.round_to_mintick(liqg_target))) + "   Dist " + (na(liqg_distPct) ? "–" : str.tostring(math.round(liqg_distPct)) + "%") + "   Arrival " + liqg_arrTx) : "")
+// 3-D AGREEMENT → dynamic confidence / integrity (agreement quality, not score thresholds).
+//   Structure: wave still holds its M5 origin · Momentum: travelling with the wave ·
+//   Physics: energy not yet fully resolved/dissipated. Each dimension contributes equally.
+bool  _cdpSAgree = displayWaveDir_M5 != 0 and (displayWaveDir_M5 == 1 ? close > se5_inv : close < se5_inv)
+bool  _cdpMAgree = displayWaveDir_M5 != 0 and (displayWaveDir_M5 == 1 ? velocity > 0 : velocity < 0)
+bool  _cdpPAgree = re_resolutionState != "RESOLVED" and ede_dissipationProgress < 80
+float phaseConfidence = (_cdpSAgree ? 34.0 : 0.0) + (_cdpMAgree ? 33.0 : 0.0) + (_cdpPAgree ? 33.0 : 0.0)
+float phaseIntegrity  = math.max(0.0, math.min(100.0, phaseConfidence * 0.6 + (100.0 - math.min(ede_dissipationProgress, 100.0)) * 0.4))
+// Full chart-label projection (Direction · Phase [· Substate] · Target · Distance · Arrival · Confidence · Integrity)
+string liqg_readout = _cdpDir + " · " + currentDisplayPhase + (liqg_active ? ("\nTarget " + (na(liqg_target) ? "forming" : str.tostring(math.round_to_mintick(liqg_target))) + "   Dist " + (na(liqg_distPct) ? "–" : str.tostring(math.round(liqg_distPct)) + "%") + "   Arrival " + liqg_arrTx) : "") + "   ·   Conf " + str.tostring(math.round(phaseConfidence)) + "%  Integ " + str.tostring(math.round(phaseIntegrity)) + "%"
 
 string convMatStage =
      convexityMaturity >= 80 ? "Terminal Convexity" :
@@ -5114,7 +5122,7 @@ f_v72_run(int _dir3, int _dir4, array<float> _cf, array<int> _ci, array<bool> _c
          not te_rrGate ? "Wait" :
          (ie1a_currentPhase == "Demand Return" and direction == 1)  ? "Long"  :
          (ie1a_currentPhase == "Supply Return" and direction == -1) ? "Short" : "Wait"
-    float doe_confidence = math.min(modelConfidence * 0.50 + mce_alignmentScore * 0.25 + ie1a_phaseConfidence * 0.25, frz_attractorConvergence ? doeCapConv : doeCapBase)
+    float doe_confidence = math.min(modelConfidence * 0.50 + mce_alignmentScore * 0.25 + phaseConfidence * 0.25, frz_attractorConvergence ? doeCapConv : doeCapBase)
     string doe_tradeType =
          (ne_dominantNarrative == "Bullish Continuation" or ne_dominantNarrative == "Bearish Continuation") ? "Continuation" :
          (ne_dominantNarrative == "Bullish Pullback"     or ne_dominantNarrative == "Bearish Pullback")     ? "Pullback" :
