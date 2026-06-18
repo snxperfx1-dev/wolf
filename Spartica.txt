@@ -224,6 +224,11 @@ showOriginLong     = originMode == "Long"  or originMode == "Both"
 f_tsize(string s) =>
     s == "tiny" ? size.tiny : s == "normal" ? size.normal : size.small
 
+// MOS ASCII strength bar (0-100 -> 10-cell filled/empty bar).
+f_mosBar(float _pct) =>
+    int _n = math.round(math.min(math.max(_pct, 0.0), 100.0) / 10.0)
+    str.repeat("█", _n) + str.repeat("░", 10 - _n)
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // SECTION 2 — CORE PHYSICS ENGINE
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -5545,32 +5550,36 @@ f_v72_run(int _dir3, int _dir4, array<float> _cf, array<int> _ci, array<bool> _c
     // and/ternary, so a -1 index would throw — hence explicit if-blocks).
     int    _dcN            = array.size(dc_sc)
     float  dc_bestScore    = 0.0
+    float  dc_bestPrice    = na
+    string dc_bestType     = "-"
     string tpl_winnerClass = "Weak"
-    string dc_primaryStr   = "Scanning - no A-class target"
+    string dc_primaryStr   = "No destination yet"
     string dc_secondaryStr = "-"
     string dc_thirdStr     = "-"
     string dc_scoreboard   = "No structural candidates"
     bool   dc_aClass       = false
-    tpl_source     := "SCANNING"
+    tpl_source     := "RANGEBOUND"
     tpl_confidence := 0.0
     if _dcN > 0
         array<int> dc_order = array.sort_indices(dc_sc, order.descending)
         int _i1 = array.get(dc_order, 0)
         dc_bestScore    := array.get(dc_sc, _i1)
+        dc_bestPrice    := array.get(dc_px, _i1)
+        dc_bestType     := array.get(dc_ty, _i1)
         tpl_winnerClass := array.get(dc_cl, _i1)
         tpl_confidence  := dc_bestScore
         dc_aClass       := dc_bestScore >= 78
-        if dc_aClass
-            tpl_mainTarget := array.get(dc_px, _i1)
-            tpl_source     := array.get(dc_ty, _i1)
-            dc_primaryStr  := f_v72_px(array.get(dc_px, _i1)) + "\n" + array.get(dc_cl, _i1) + "\n" + array.get(dc_ty, _i1) + "\nScore " + str.tostring(math.round(dc_bestScore))
+        if dc_bestScore >= 55
+            tpl_mainTarget := dc_bestPrice
+            tpl_source     := dc_bestType
+            dc_primaryStr  := f_v72_px(dc_bestPrice) + "\n" + tpl_winnerClass + " quality\n" + dc_bestType + "\nScore " + str.tostring(math.round(dc_bestScore))
         if _dcN > 1
             int _i2 = array.get(dc_order, 1)
-            if array.get(dc_sc, _i2) >= 78
+            if array.get(dc_sc, _i2) >= 55
                 dc_secondaryStr := f_v72_px(array.get(dc_px, _i2)) + "  " + array.get(dc_cl, _i2) + "  " + array.get(dc_ty, _i2) + "  S" + str.tostring(math.round(array.get(dc_sc, _i2)))
         if _dcN > 2
             int _i3 = array.get(dc_order, 2)
-            if array.get(dc_sc, _i3) >= 78
+            if array.get(dc_sc, _i3) >= 55
                 dc_thirdStr := f_v72_px(array.get(dc_px, _i3)) + "  " + array.get(dc_cl, _i3) + "  " + array.get(dc_ty, _i3) + "  S" + str.tostring(math.round(array.get(dc_sc, _i3)))
         dc_scoreboard := ""
         for _k = 0 to math.min(_dcN - 1, 4)
@@ -5582,7 +5591,7 @@ f_v72_run(int _dir3, int _dir4, array<float> _cf, array<int> _ci, array<bool> _c
     float  tpl_revTarget = na
     string tpl_revSource = "off"
     float  tpl_distanceATR = not na(tpl_mainTarget) ? math.abs(close - tpl_mainTarget) / math.max(atr, 1e-10) : na
-    string tpl_status = na(tpl_mainTarget) ? "SCANNING" : tpl_confidence >= 92 ? "A+++ MAGNET" : tpl_confidence >= 85 ? "A++ MAGNET" : "A+ ACTIVE"
+    string tpl_status = na(tpl_mainTarget) ? "RANGEBOUND" : tpl_winnerClass + " MAGNET"
 
     // Live destination line + label (single object, refreshed on the last bar)
     var line  tpl_line  = na
@@ -5668,17 +5677,38 @@ f_v72_run(int _dir3, int _dir4, array<float> _cf, array<int> _ci, array<bool> _c
     // (Engine 1A phase, rotation state, destination engine, opportunity, threats,
     // stack). No new math — these are sentences, not variables.
     string _mosSide   = displayWaveDir_M5 == 1 ? "buyers" : displayWaveDir_M5 == -1 ? "sellers" : "neither side"
+    // Concrete price references so the language names LEVELS, never just "structure".
+    string _mosDestPx = na(dc_bestPrice) ? "" : f_v72_px(dc_bestPrice)
+    string _mosRetPx  = not na(frz_bestZoneMid) ? f_v72_px(frz_bestZoneMid) : not na(eae_primaryAttractorPrice) ? f_v72_px(eae_primaryAttractorPrice) : not na(point4OriginLow) ? f_v72_px(displayWaveDir_M5 == -1 ? point4OriginHigh : point4OriginLow) : "the return zone"
+    string _mosStopPx = na(inv_activeStop) ? "the invalidation level" : f_v72_px(inv_activeStop)
     string story_now    = ie1a_currentPhase + " is the active phase and " + _mosSide + " hold the initiative."
     string story_why    = _rotState == "FULL CASCADE"   ? "All timeframes are aligned and pressure flows one way." : _rotState == "ROTATION MATURE" ? "Pressure is transferring up the timeframes; the move is maturing." : _rotState == "ROTATION ACTIVE" ? "Control is rotating between timeframes as pressure transfers." : "Pressure is still accumulating before a clear transfer."
-    string story_dest   = dc_aClass ? ("Energy is converging on the " + tpl_source + " destination (" + tpl_winnerClass + ").") : "No high-quality destination has formed; the market is still scanning."
-    string story_threat = inv_invalidated ? "The active structure is invalidated - continuation is in doubt." : (displayWaveDir_H1 != 0 and displayWaveDir_H1 != displayWaveDir_M5) ? "Higher-timeframe (H1) disagreement is the main risk." : "No immediate structural threat is visible."
-    string story_outlook= oppState == "TRADE ACTIVE" ? "A live opportunity is in play." : oppState == "PREPARE TO EXECUTE" ? "Conditions are lining up for entry." : oppProgress >= 20 ? "An opportunity is developing but unconfirmed." : "Best to stand aside until structure improves."
-    string cop_next     = displayWaveDir_M5 == 1 ? "Further upside remains favoured while structure holds." : displayWaveDir_M5 == -1 ? "Further downside remains favoured while structure holds." : "Direction stays unresolved until a wave takes control."
-    string cop_action   = (oppState == "PREPARE TO EXECUTE" or oppState == "TRADE ACTIVE") ? "Act on return-zone interaction; manage against the structural stop." : "Wait for a return-zone interaction before committing."
+    string story_dest   = not na(dc_bestPrice) ? ("Price is being drawn toward " + _mosDestPx + " - the " + dc_bestType + " (" + tpl_winnerClass + " quality).") : "No destination has formed; the market is rangebound."
+    string story_threat = inv_invalidated ? ("Structure is invalidated; a break of " + _mosStopPx + " ends continuation.") : (displayWaveDir_H1 != 0 and displayWaveDir_H1 != displayWaveDir_M5) ? "H1 disagrees with the execution wave - the main risk to continuation." : ("Continuation holds while price stays beyond " + _mosStopPx + ".")
+    string story_outlook= oppState == "TRADE ACTIVE" ? "A live opportunity is in play." : oppState == "PREPARE TO EXECUTE" ? ("Conditions are lining up for entry near " + _mosRetPx + ".") : oppProgress >= 20 ? "An opportunity is developing but unconfirmed." : "Best to stand aside until structure improves."
+    string cop_next     = not na(dc_bestPrice) ? ((displayWaveDir_M5 == 1 ? "Upside" : displayWaveDir_M5 == -1 ? "Downside" : "Movement") + " toward " + _mosDestPx + " stays favoured while " + _mosStopPx + " holds.") : "Direction stays unresolved until a wave takes control."
+    string cop_action   = (oppState == "PREPARE TO EXECUTE" or oppState == "TRADE ACTIVE") ? ("Act if price reacts at " + _mosRetPx + "; invalidation at " + _mosStopPx + ".") : ("Wait for price to reach " + _mosRetPx + " before committing.")
+
+    // ── CONTROL MATRIX (who holds authority) ──
+    string _ctlArrowM1  = displayWaveDir_M1  == 1 ? "▲ Bulls" : displayWaveDir_M1  == -1 ? "▼ Bears" : "○ Neutral"
+    string _ctlArrowM5  = displayWaveDir_M5  == 1 ? "▲ Bulls" : displayWaveDir_M5  == -1 ? "▼ Bears" : "○ Neutral"
+    string _ctlArrowM15 = displayWaveDir_M15 == 1 ? "▲ Bulls" : displayWaveDir_M15 == -1 ? "▼ Bears" : "○ Neutral"
+    string _ctlArrowH1  = displayWaveDir_H1  == 1 ? "▲ Bulls" : displayWaveDir_H1  == -1 ? "▼ Bears" : "○ Neutral"
+    string _ctlArrowH4  = displayWaveDir_H4  == 1 ? "▲ Bulls" : displayWaveDir_H4  == -1 ? "▼ Bears" : "○ Neutral"
+    string control_state     = fractalStackScore >= 80 ? "DOMINANT" : fractalStackScore >= 60 ? "STABLE" : fractalStackScore >= 40 ? "CONTESTED" : "FRAGMENTED"
+    string control_transfer  = _rotCascade ? "FULL CASCADE" : _rotMature ? "TRANSFER UPWARD" : _rotActive ? "ROTATING" : "FORMING"
+    // ── THREAT MATRIX ──
+    bool   _thrH1   = displayWaveDir_H1 != 0 and displayWaveDir_H1 != displayWaveDir_M5
+    int    _thrCnt  = (inv_invalidated ? 1 : 0) + (_thrH1 ? 1 : 0) + (not erf_entryGate ? 1 : 0)
+    string threat_state = _thrCnt == 0 ? "CLEAR" : _thrCnt == 1 ? "CAUTION" : _thrCnt == 2 ? "ELEVATED" : "DANGER"
+    string threat_list  = (inv_invalidated ? "⚠ Structure invalidated\n" : "") + (_thrH1 ? "⚠ H1 disagreement\n" : "") + (not erf_entryGate ? "⚠ Entry gate closed\n" : "")
+    string threat_show  = threat_list == "" ? "✓ Clear - no active threats" : threat_list
+    // ── DESTINATION WAR winner state ──
+    string war_state = tpl_winnerClass == "A+++" or tpl_winnerClass == "A++" ? "MAGNET" : tpl_winnerClass == "A+" or tpl_winnerClass == "A" ? "COMPETING" : na(dc_bestPrice) ? "NONE" : "UNSTABLE"
 
     // ── V72.12 Dashboards ────────────────────────────────────────────────────
     if barstate.islast and showTable and showV72Command
-        var table mosStory = table.new(position.top_center, 1, 6, bgcolor=color.new(#05050f, 86), frame_color=color.new(#00ffcc, 45), frame_width=1, border_width=0)
+        var table mosStory = table.new(position.top_center, 1, 6, bgcolor=color.new(#0b0b1c, 6), frame_color=color.new(#00e5ff, 25), frame_width=2, border_width=0)
         table.cell(mosStory, 0, 0, "════════  MARKET STORY  ════════", text_color=#00ffcc, text_size=size.normal)
         table.cell(mosStory, 0, 1, story_now,     text_color=color.white,  text_size=size.normal)
         table.cell(mosStory, 0, 2, story_why,     text_color=color.silver, text_size=size.small)
@@ -5686,7 +5716,33 @@ f_v72_run(int _dir3, int _dir4, array<float> _cf, array<int> _ci, array<bool> _c
         table.cell(mosStory, 0, 4, story_threat,  text_color=(inv_invalidated ? color.red : color.orange), text_size=size.small)
         table.cell(mosStory, 0, 5, story_outlook, text_color=(oppProgress >= 60 ? color.lime : color.yellow), text_size=size.small)
 
-        var table mosCop = table.new(position.bottom_right, 1, 6, bgcolor=color.new(#05050f, 84), frame_color=color.new(#00ffcc, 45), frame_width=1, border_width=0)
+        // ── SECTION 2: CONTROL MATRIX (top left) — who holds authority ──
+        var table mosCtl = table.new(position.top_left, 1, 8, bgcolor=color.new(#0b0b1c, 6), frame_color=color.new(#00e5ff, 25), frame_width=2, border_width=0)
+        table.cell(mosCtl, 0, 0, "═══  CONTROL  ═══", text_color=#00e5ff, text_size=size.small)
+        table.cell(mosCtl, 0, 1, "M1   " + _ctlArrowM1,  text_color=(displayWaveDir_M1  == 1 ? #5aff9e : displayWaveDir_M1  == -1 ? #ff5a5a : color.gray), text_size=size.small)
+        table.cell(mosCtl, 0, 2, "M5   " + _ctlArrowM5,  text_color=(displayWaveDir_M5  == 1 ? #5aff9e : displayWaveDir_M5  == -1 ? #ff5a5a : color.gray), text_size=size.small)
+        table.cell(mosCtl, 0, 3, "M15  " + _ctlArrowM15, text_color=(displayWaveDir_M15 == 1 ? #5aff9e : displayWaveDir_M15 == -1 ? #ff5a5a : color.gray), text_size=size.small)
+        table.cell(mosCtl, 0, 4, "H1   " + _ctlArrowH1,  text_color=(displayWaveDir_H1  == 1 ? #5aff9e : displayWaveDir_H1  == -1 ? #ff5a5a : color.gray), text_size=size.small)
+        table.cell(mosCtl, 0, 5, "H4   " + _ctlArrowH4,  text_color=(displayWaveDir_H4  == 1 ? #5aff9e : displayWaveDir_H4  == -1 ? #ff5a5a : color.gray), text_size=size.small)
+        table.cell(mosCtl, 0, 6, "Authority " + f_mosBar(fractalStackScore), text_color=(fractalStackScore >= 60 ? #5aff9e : fractalStackScore >= 40 ? #ffe05a : #ff5a5a), text_size=size.small)
+        table.cell(mosCtl, 0, 7, control_state + "  ·  " + control_transfer, text_color=color.white, text_size=size.small)
+
+        // ── SECTION 5: DESTINATION WAR (top right) — candidate competition ──
+        var table mosWar = table.new(position.top_right, 1, 6, bgcolor=color.new(#0b0b1c, 6), frame_color=color.new(#00e5ff, 25), frame_width=2, border_width=0)
+        table.cell(mosWar, 0, 0, "═══  DESTINATION WAR  ═══", text_color=#00e5ff, text_size=size.small)
+        table.cell(mosWar, 0, 1, na(dc_bestPrice) ? "No active competition" : ("WINNER  " + dc_bestType), text_color=#5aff9e, text_size=size.small)
+        table.cell(mosWar, 0, 2, na(dc_bestPrice) ? "-" : (_mosDestPx + "   " + tpl_winnerClass + "   " + war_state), text_color=color.white, text_size=size.small)
+        table.cell(mosWar, 0, 3, na(dc_bestPrice) ? "" : f_mosBar(dc_bestScore), text_color=#5ad1ff, text_size=size.small)
+        table.cell(mosWar, 0, 4, "─ field ─", text_color=#7a86a8, text_size=size.tiny)
+        table.cell(mosWar, 0, 5, dc_scoreboard, text_color=#b8c4e0, text_size=size.tiny)
+
+        // ── SECTION 7: THREAT MATRIX (bottom left) ──
+        var table mosThr = table.new(position.bottom_left, 1, 3, bgcolor=color.new(#0b0b1c, 6), frame_color=color.new(#00e5ff, 25), frame_width=2, border_width=0)
+        table.cell(mosThr, 0, 0, "═══  THREATS  ═══", text_color=#00e5ff, text_size=size.small)
+        table.cell(mosThr, 0, 1, threat_state + "   " + f_mosBar(_thrCnt * 33.0), text_color=(_thrCnt == 0 ? #5aff9e : _thrCnt == 1 ? #ffe05a : _thrCnt == 2 ? #ffb347 : #ff5a5a), text_size=size.small)
+        table.cell(mosThr, 0, 2, threat_show, text_color=color.white, text_size=size.small)
+
+        var table mosCop = table.new(position.bottom_right, 1, 6, bgcolor=color.new(#0b0b1c, 6), frame_color=color.new(#00e5ff, 25), frame_width=2, border_width=0)
         table.cell(mosCop, 0, 0, "──────  COPILOT  ──────", text_color=#00ffcc, text_size=size.small)
         table.cell(mosCop, 0, 1, "CURRENT   " + ie1a_currentPhase + " remains the dominant behaviour.", text_color=color.white, text_size=size.small)
         table.cell(mosCop, 0, 2, "WHY       " + story_why, text_color=color.silver, text_size=size.small)
