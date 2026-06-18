@@ -856,6 +856,16 @@ int _stackBull = (m1_dir == 1 ? 1 : 0) + (l3_dir == 1 ? 1 : 0) + (l0_dir == 1 ? 
 int _stackBear = (m1_dir == -1 ? 1 : 0) + (l3_dir == -1 ? 1 : 0) + (l0_dir == -1 ? 1 : 0) + (l1_dir == -1 ? 1 : 0) + (l2_dir == -1 ? 1 : 0) + (l4_dir == -1 ? 1 : 0)
 int   fractalStackDir   = _stackBull > _stackBear ? 1 : _stackBear > _stackBull ? -1 : 0
 float fractalStackScore = math.max(_stackBull, _stackBear) / 6.0 * 100.0
+
+// ── Live directional references for DISPLAY engines (Bayesian / Direction Prob) ─
+// These mirror the repaired live wave plumbing so display panels respond the
+// instant the wave state changes. They intentionally do NOT touch the gated
+// Engine-1A `direction` (execution state) or `htfAlign` (belief) used for trade
+// firing — only the read-only probability/quality readouts consume them.
+//   liveWaveDir   = M5 (L0) live origin-based wave direction (execution context)
+//   liveHtfAlign  = live HTF consensus: +1/-1 only when H1 (l2) and H4 (l4) agree
+int liveWaveDir  = l0_dir
+int liveHtfAlign = (l2_dir != 0 and l2_dir == l4_dir) ? l2_dir : 0
 float fractalCtxScore   = math.min(
      (l4_dir == fractalStackDir and fractalStackDir != 0 ? 30.0 : 0.0) +
      (l2_dir == fractalStackDir and fractalStackDir != 0 ? 26.0 : 0.0) +
@@ -2565,13 +2575,13 @@ color  gradeCol = grade == "A+" ? #00ff88 : grade == "A" ? color.lime : grade ==
 // SECTION 16 — BAYESIAN PROBABILISTIC MODEL
 // ═══════════════════════════════════════════════════════════════════════════════
 
-float bayesStruct   = structBias == direction ? 0.90 : structBias == 0 ? 0.50 : 0.15
-float bayesMomentum = (direction ==  1 and velocity > 0 and acceleration > 0) ? 0.85 :
-                      (direction == -1 and velocity < 0 and acceleration < 0) ? 0.85 :
-                      (direction ==  1 and velocity > 0) or
-                      (direction == -1 and velocity < 0) ? 0.60 : 0.30
+float bayesStruct   = structBias == liveWaveDir ? 0.90 : structBias == 0 ? 0.50 : 0.15
+float bayesMomentum = (liveWaveDir ==  1 and velocity > 0 and acceleration > 0) ? 0.85 :
+                      (liveWaveDir == -1 and velocity < 0 and acceleration < 0) ? 0.85 :
+                      (liveWaveDir ==  1 and velocity > 0) or
+                      (liveWaveDir == -1 and velocity < 0) ? 0.60 : 0.30
 float bayesLiq      = liqHeat > 70 ? 0.80 : liqHeat > 30 ? 0.55 : 0.35
-float bayesHTF      = htfAlign == direction ? 0.90 : htfAlign == 0 ? 0.55 : 0.20
+float bayesHTF      = liveHtfAlign == liveWaveDir and liveHtfAlign != 0 ? 0.90 : liveHtfAlign == 0 ? 0.55 : 0.20
 float bayesDisp     = displacement > dispThresh * 1.5 ? 0.85 : displacement > dispThresh ? 0.65 : 0.35
 float bayesOB       = obFreshness > 0.7 ? 0.80 : obFreshness > 0.4 ? 0.60 : 0.35
 float bayesInduc    = inducConfidence > 0 ? 0.90 : inducConfidence < 0 ? 0.20 : 0.50
@@ -2611,7 +2621,7 @@ float expansionProbability = math.min(
      (not bullInvalid and not bearInvalid ? 20.0 : 0.0) +
      (convexityComplete                  ? 20.0 : convexityScore * 0.4) +
      (recursiveComplete                  ? 15.0 : flipzoneStagesComplete * 3.0) +
-     (htfAlign == direction              ? 25.0 : htfAlign == 0 ? 12.5 : 0.0) +
+     (liveHtfAlign == liveWaveDir and liveHtfAlign != 0 ? 25.0 : liveHtfAlign == 0 ? 12.5 : 0.0) +
      (liqHeat > 50                       ? 20.0 : liqHeat * 0.4),
      100.0)
 
@@ -2620,16 +2630,16 @@ float reversalProbability = math.min(
      (retracementInductionConf        ? 20.0 : 0.0) +
      (liqHeat > 70                    ? 20.0 : 0.0) +
      (velDecay * 20.0) +
-     (htfAlign != direction and htfAlign != 0 ? 15.0 : 0.0),
+     (liveHtfAlign != liveWaveDir and liveHtfAlign != 0 ? 15.0 : 0.0),
      100.0)
 
 float tradeReadiness = math.min(
-     (direction != 0                     ? 10.0 : 0.0) +
+     (liveWaveDir != 0                    ? 10.0 : 0.0) +
      (flipzoneStagesComplete >= 3        ? 15.0 : flipzoneStagesComplete * 5.0) +
      (velocityScore * 0.10) +
      (expansionScore * 0.10) +
      (liqHeat < 50                       ? 10.0 : liqHeat > 70 ? -5.0 : 0.0) +
-     (htfAlign == direction              ? 15.0 : 0.0) +
+     (liveHtfAlign == liveWaveDir and liveHtfAlign != 0 ? 15.0 : 0.0) +
      (expansionProbability * 0.20) +
      (bayesFlipzone * 3.0),
      100.0)
