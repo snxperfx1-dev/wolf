@@ -1144,3 +1144,35 @@ do **not** reclassify this authority.
 - Cannot compile here — verified statically (identifier scope, no orphaned refs,
   function integrity). If a token-limit error (CE10117) appears, a dead-code
   trim pass is required before further additions.
+
+
+
+---
+
+# AUTHORITY WIRING — BATCH 2 (consumers + 1A.7 → decisions)
+
+Additive, on the compiling baseline. No canonical logic removed.
+
+- **On-chart DIE narrative marker** now consumes `currentDisplayPhase`
+  (`die_narrativeDir`), and `f_phaseAbbr` tags any liquidation-wave state as
+  `LQW` so the floating marker matches the authority (full substate remains on
+  the M5 trace label + Market Story).
+- **Multi-Level Progress — M5 row** is now **dynamic**: during a liquidation
+  wave it shows distance-traveled (`100 − liqg_distPct`) instead of the static
+  `_wp` lookup, and labels the row with `currentDisplayPhase`. (M1/M3/M15/H1/H4
+  rows remain static `_wp` — they have no per-TF liquidation engine yet.)
+- **DOE decision gate (Engine 1A.7 → decisions):** `doe_action` now returns
+  `Wait` while `liqg_active and not (liqg_objArrival and liqg_trueCHoCH)` — i.e.
+  no entry is issued while the objective-completion wave is still in progress.
+  This is the first decision-layer consumption of Engine 1A.7 (previously
+  display-only).
+
+### Still deferred (requires compile-checked iteration, not safe blind)
+- Physics-before-phase **source reorder** (move FRZ/DOM/EAE/Rotation above the
+  phase) — the only way to make the *canonical* phase truly 3-D and flip
+  criteria 8–13/27. Must be done in small, individually-compiled steps.
+- **Per-TF liquidation overlays** (M1/M3/M15/H1/H4) — need per-TF EDE/RE which
+  are currently M5-only.
+- **ExecProb / Fusion / waveAgreement** still legacy stack-score; not yet routed
+  to `currentDisplayPhase`.
+- Non-liquidation **progress** for M1/M3/M15/H1/H4 still static `_wp`.

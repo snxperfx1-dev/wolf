@@ -231,6 +231,7 @@ f_mosBar(float _pct) =>
 
 // Compact phase abbreviation for on-chart labels (keeps the chart uncluttered).
 f_phaseAbbr(string _p) =>
+    str.contains(_p, "Liquidation Wave") ? "LQW" :
     _p == "Expansion"                ? "EXP"    :
      _p == "Expansion Pre-Convexity" ? "EXP·PC" :
      _p == "Expansion Induction"     ? "EXP·IN" :
@@ -3378,7 +3379,7 @@ bool die_originOld     = die_originAge >= 100
 // The ie1a_hypFamily string maps canonical phases back to the old vocabulary so
 // downstream colour logic (which expects these strings) continues to work.
 string die_narrative    = ie1a_hypFamily    // belief-family string from IE1A
-string die_narrativeDir = ie1a_currentPhase // canonical IE1A lifecycle phase
+string die_narrativeDir = currentDisplayPhase // single Engine 1A display authority (canonical + liquidation substate)
 
 var string die_lastNarrative = ""
 bool die_narrativeChanged = die_narrative != die_lastNarrative
@@ -4052,7 +4053,8 @@ f_renderDashP3() =>
             table.cell(dashP3, 3, _rpR, l3_phaseCanon + "  " + f_mosBar(l3_waveProgress) + " " + str.tostring(math.round(l3_waveProgress)) + "%", text_color=color.new(#c084fc, 0), text_size=_szA)
             _rpR := _rpR + 1
             table.cell(dashP3, 2, _rpR, "M5", text_color=color.silver, text_size=_szA)
-            table.cell(dashP3, 3, _rpR, l0_phaseCanon + "  " + f_mosBar(l0_waveProgress) + " " + str.tostring(math.round(l0_waveProgress)) + "%", text_color=color.lime, text_size=_szA)
+            float _m5Prog = liqg_active and not na(liqg_distPct) ? 100.0 - liqg_distPct : l0_waveProgress
+            table.cell(dashP3, 3, _rpR, currentDisplayPhase + "  " + f_mosBar(_m5Prog) + " " + str.tostring(math.round(_m5Prog)) + "%", text_color=color.lime, text_size=_szA)
             _rpR := _rpR + 1
             table.cell(dashP3, 2, _rpR, "M15", text_color=color.silver, text_size=_szA)
             table.cell(dashP3, 3, _rpR, l1_phaseCanon + "  " + f_mosBar(l1_waveProgress) + " " + str.tostring(math.round(l1_waveProgress)) + "%", text_color=color.aqua, text_size=_szA)
@@ -5107,6 +5109,7 @@ f_v72_run(int _dir3, int _dir4, array<float> _cf, array<int> _ci, array<bool> _c
          displayWaveDir_M5 == -1 ? "Bearish" : "Neutral"
     string doe_action =
          inv_invalidated ? "No Trade" :
+         (liqg_active and not (liqg_objArrival and liqg_trueCHoCH)) ? "Wait" :
          not erf_entryGate ? "Wait" :
          not te_rrGate ? "Wait" :
          (ie1a_currentPhase == "Demand Return" and direction == 1)  ? "Long"  :
