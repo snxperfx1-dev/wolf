@@ -5479,11 +5479,74 @@ f_v72_run(int _dir3, int _dir4, array<float> _cf, array<int> _ci, array<bool> _c
     string exec_target   = not na(dc_bestPrice) ? f_v72_px(dc_bestPrice) : na(te_tp1) ? "n/a" : f_v72_px(te_tp1)
     string exec_blocker  = na(tpl_distanceATR) ? "destination forming" : ("Distance to target " + str.tostring(tpl_distanceATR, "#.0") + " ATR")
 
+    // ═══ ENGINE 1A.7 — PRE-OBJECTIVE LIQUIDATION WAVE (additive; physics-driven) ═══
+    // Active ONLY inside Expansion / Retracement Induction. Sub-stages are driven by
+    // physics distance compression (never time/bars). The canonical 14-phase lifecycle
+    // is unchanged — these are informational sub-states that overlay the two Induction
+    // phases and model the objective-completion wave (where liquidity is swept,
+    // destinations fill, control transfers and true CHoCH forms).
+    var bool  liq_active   = false
+    var bool  liq_isRetr   = false
+    var int   liq_dir      = 0
+    var float liq_origin   = na
+    var float liq_target   = na
+    var float liq_initDist = na
+    bool  _liqArmRetr = ie1a_currentPhase == "Retracement Induction"
+    bool  _liqArm     = ie1a_currentPhase == "Expansion Induction" or _liqArmRetr
+    // Objective = physics destination (ranked destination -> attractor -> FRZ zone mid)
+    float _liqObj = not na(dc_bestPrice) ? dc_bestPrice : not na(eae_primaryAttractorPrice) ? eae_primaryAttractorPrice : frz_bestZoneMid
+    if _liqArm and not liq_active and not na(_liqObj)
+        liq_active   := true
+        liq_isRetr   := _liqArmRetr
+        liq_origin   := close
+        liq_target   := _liqObj
+        liq_dir      := _liqObj > close ? 1 : -1
+        liq_initDist := math.max(math.abs(_liqObj - close), atr * 0.5)
+    if liq_active and not na(_liqObj)
+        liq_target := _liqObj
+    // Distance compression: 100% = at origin, 0% = arrived at objective (physics only)
+    float _liqRemain      = (liq_active and not na(liq_target)) ? math.abs(liq_target - close) : na
+    float liq_distancePct = (liq_active and not na(_liqRemain)) ? math.min(100.0, _liqRemain / math.max(liq_initDist, 1e-10) * 100.0) : na
+    bool  _liqMagnet   = liq_active and (frz_inProximity or (not na(frz_distanceToZone) and frz_distanceToZone < frzProximityATR))
+    bool  _liqCapExh   = ede_dissipationProgress > 60 or convexityMaturity > 60
+    bool  _liqRotDone  = rot_transferProbability >= 60 or re_resolutionState == "RESOLVED"
+    bool  _liqEnergyLo = efficiency < effThresh * 0.7
+    // OBJECTIVE ARRIVAL — requires Structure ∧ Momentum ∧ Physics simultaneously
+    bool  _liqArrStruct = liq_active and not na(liq_target) and (liq_dir == 1 ? close >= liq_target : close <= liq_target)
+    bool  _liqArrPhys   = _liqMagnet and _liqRotDone and _liqCapExh
+    bool  liq_objArrival = _liqArrStruct and _liqEnergyLo and _liqArrPhys
+    // TRUE CHANGE OF CHARACTER — never from BOS alone; needs arrival + collapse + resolution
+    bool  _liqChochStruct = liq_dir == 1 ? bearBOS : bullBOS
+    bool  liq_trueCHoCH   = liq_objArrival and _liqChochStruct and _liqEnergyLo and re_resolutionState == "RESOLVED"
+    // Sub-phase from distance compression + physics (Initialization..Objective Arrival)
+    string liq_subPhase =
+         not liq_active                                            ? "" :
+         liq_objArrival                                            ? "Objective Arrival" :
+         (_liqMagnet and _liqEnergyLo)                             ? "Terminal Liquidation" :
+         (rot_transferProbability >= 40 or convexityMaturity > 40) ? "Induction" :
+         (not na(liq_distancePct) and liq_distancePct < 70)        ? "Displacement" :
+         (not na(liq_distancePct) and liq_distancePct < 95)        ? "Expansion" : "Initialization"
+    string _liqTitle =
+         not liq_active ? "" :
+         liq_isRetr and displayWaveDir_M5 == -1 ? "PRE-SUPPLY RETURN LIQUIDATION WAVE" :
+         liq_isRetr                              ? "PRE-DEMAND RETURN LIQUIDATION WAVE" :
+         displayWaveDir_M5 == -1                 ? "PRE-NEW LOW LIQUIDATION WAVE" : "PRE-NEW HIGH LIQUIDATION WAVE"
+    string liq_readout = not liq_active ? "Objective wave: dormant" :
+         _liqTitle + "\nSubphase: " + liq_subPhase
+         + "\nTarget: " + (na(liq_target) ? "forming" : f_v72_px(liq_target))
+         + "\nDistance: " + (na(liq_distancePct) ? "–" : str.tostring(math.round(liq_distancePct)) + "%")
+         + "\nArrival: " + (liq_objArrival ? "Yes" : (not na(liq_distancePct) and liq_distancePct < 12) ? "Imminent" : "No")
+    // Absorption may only take over once the objective is genuinely complete AND a true
+    // CHoCH has formed. Until then the overlay keeps the liquidation wave in control
+    // (regardless of any single BOS). Retire on arrival+CHoCH, invalidation, or new wave.
+    if liq_active and ((liq_objArrival and liq_trueCHoCH) or inv_invalidated or ie1a_currentPhase == "Expansion" or ie1a_currentPhase == "Point 4 Origin")
+        liq_active := false
+
     // ── V72.12 Dashboards ────────────────────────────────────────────────────
     if barstate.islast and showTable and showV72Command
-        var table mosStory = table.new(position.top_center, 1, 9, bgcolor=color.new(#0b0b1c, 6), frame_color=color.new(#00e5ff, 25), frame_width=2, border_width=0)
+        var table mosStory = table.new(position.top_center, 1, 10, bgcolor=color.new(#0b0b1c, 6), frame_color=color.new(#00e5ff, 25), frame_width=2, border_width=0)
         table.cell(mosStory, 0, 0, "════════  MARKET STORY  ════════", text_color=#00ffcc, text_size=size.normal)
-        table.cell(mosStory, 0, 1, story_now,     text_color=color.white,  text_size=size.normal)
+        table.cell(mosStory, 0, 1, liq_active ? (_liqTitle + " — " + liq_subPhase) : story_now, text_color=(liq_active ? #ffd000 : color.white), text_size=size.normal)
         table.cell(mosStory, 0, 2, story_why,     text_color=color.silver, text_size=size.small)
         table.cell(mosStory, 0, 3, story_dest,    text_color=color.aqua,   text_size=size.small)
         table.cell(mosStory, 0, 4, story_threat,  text_color=(inv_invalidated ? color.red : color.orange), text_size=size.small)
@@ -5491,6 +5554,7 @@ f_v72_run(int _dir3, int _dir4, array<float> _cf, array<int> _ci, array<bool> _c
         table.cell(mosStory, 0, 6, "WAVE   " + cmd_narrative, text_color=#9fb0d8, text_size=size.small)
         table.cell(mosStory, 0, 7, "OPERATION   " + mos_operation, text_color=#ffe05a, text_size=size.small)
         table.cell(mosStory, 0, 8, "COMMANDER   " + mos_commander + "   (conf " + mos_conf + ")", text_color=(mos_commander == "ATTACK" ? #00ff88 : (mos_commander == "STAND DOWN" or mos_commander == "REDUCE RISK") ? #ff5a5a : #ffd000), text_size=size.normal)
+        table.cell(mosStory, 0, 9, liq_readout, text_color=(liq_active ? #ffd000 : color.gray), text_size=size.small)
 
         // ── SECTION 2: CONTROL MATRIX (top left) — who holds authority ──
         var table mosCtl = table.new(position.top_left, 1, 9, bgcolor=color.new(#0b0b1c, 6), frame_color=color.new(#00e5ff, 25), frame_width=2, border_width=0)

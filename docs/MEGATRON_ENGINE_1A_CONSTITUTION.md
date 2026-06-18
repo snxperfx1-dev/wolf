@@ -928,3 +928,171 @@ strictly evidence, never phase — and how momentum evidence aligns in time with
 the structural objects of Part 2.
 
 *Awaiting ratification of Part 2 before drafting Part 3.*
+
+
+
+---
+
+# ENGINE 1A.7 — PRE-OBJECTIVE LIQUIDATION WAVE ARCHITECTURE
+
+> **Purely additive. Nothing in Engine 1A is removed.** The canonical 14-phase
+> lifecycle (Part 1 §1.3, Part 6) is unchanged. This engine raises the
+> *resolution* of the single most important section of the lifecycle: objective
+> completion and the genuine transfer of control.
+>
+> **Status:** Implemented in `Spartica.txt` inside `f_v72_run` as the
+> `liq_*` overlay (see "Implementation Mapping" below).
+
+## Architectural Purpose
+
+The current architecture treats objective completion as **instantaneous**:
+
+```
+Expansion Liquidity → New High → Absorption
+Retracement Liquidity → Demand/Supply Return
+```
+
+This is physically incorrect. **The movement toward the objective is itself a
+wave** — with its own birth, acceleration, displacement, induction, exhaustion,
+and destination arrival. Without modelling that wave, the system cannot
+distinguish *temporary counterflow* from *genuine objective completion*, and
+therefore cannot reliably determine true supply/demand activation, genuine
+reversals, true absorption, or real transfer of control.
+
+## Core Principle
+
+Price does not jump from Induction to New High / Return. After Induction, price
+builds a **dedicated objective-completion wave** whose purpose is to *finish the
+previous objective*. That wave is where liquidity is swept, destinations fill,
+supply/demand activates, reversals begin, absorption begins, and true CHoCH
+forms. It must be modelled.
+
+## Architectural Change (additive sub-states only)
+
+```
+Expansion Induction
+   → PRE-NEW HIGH (or PRE-NEW LOW) LIQUIDATION WAVE
+        → Objective Arrival → New High / New Low → Absorption
+
+Retracement Induction
+   → PRE-DEMAND RETURN (bull) / PRE-SUPPLY RETURN (bear) LIQUIDATION WAVE
+        → Objective Arrival → Demand Return / Supply Return
+```
+
+**Only these two phases receive sub-states. Everything else is unchanged.**
+
+## Internal Liquidation-Wave Lifecycle (informational sub-states)
+
+```
+Initialization → Expansion → Displacement → Induction → Terminal Liquidation → Objective Arrival
+```
+
+- **Stage 0 — Initialization.** Birth of the objective-completion wave.
+  Structure: induction completed. Momentum: transfer beginning. Physics:
+  destination attraction beginning. Store: `liqOrigin`, `liqDirection`,
+  `liqTarget`, `liqDistance`, birth references. No phase active.
+- **Stage 1 — Expansion.** The wave establishes itself and moves away from
+  origin (nothing can be displaced before it exists). Small impulse; no BOS /
+  convexity / displacement required yet; distance still large; energy available.
+- **Stage 2 — Displacement.** Pre-convexity of the liquidation wave. Directional
+  sequence established, protected structure intact; velocity/efficiency
+  expanding; participation transfer beginning; distance compression begins;
+  objective attraction strengthening.
+- **Stage 3 — Induction.** Secondary development (internal BOS2 may appear);
+  impulse weakening; counter-participation increasing; convexity develops;
+  transfer increases; destination attraction intensifies.
+- **Stage 4 — Terminal Liquidation.** Induction complete; velocity compressing,
+  efficiency collapsing; movement changes from **push-driven to pull-driven**;
+  price magnetised — FRZ destination attraction dominates, DOM transfer
+  dominates, geometric capacity exhaustion develops, integrity deteriorates,
+  rotation completion approaches, future-return compression extreme.
+- **Stage 5 — Objective Arrival.** Requires **simultaneous** agreement:
+  - *Structure:* destination touched / protected-swing violation / objective
+    completed.
+  - *Momentum:* velocity collapse, efficiency collapse, directional exhaustion.
+  - *Physics:* FRZ destination complete, rotation complete, geometric capacity
+    exhausted, energy depleted, DOM transfer complete, integrity/maturity
+    exhausted, future-return compression maximal.
+  - Only then `objectiveArrival = TRUE`.
+
+## True Change-of-Character Engine
+
+CHoCH must **never** trigger merely because a BOS occurred. `trueCHoCH = TRUE`
+only when, simultaneously: *Structure* (protected-swing failure) ∧ *Momentum*
+(directional collapse + participation transfer) ∧ *Physics* (supply/demand
+arrival confirmed, energy exhaustion, rotation + capacity + destination
+completion, future-return collapse).
+
+## Absorption Activation Gate
+
+**Absorption cannot begin until `objectiveArrival = TRUE` AND `trueCHoCH =
+TRUE`.** Until then price remains inside the Pre-Objective Liquidation Wave
+*regardless of any single BOS*.
+
+## Distance Engine (NEVER time-based)
+
+Liquidation maturity must never use time, bars elapsed, timers, percentages of
+duration, maturity counters, or static progress. It must use
+**distanceToDestination, relativeDistanceCompression, arrivalVelocity,
+energyDecay, geometricCapacity, destinationAttraction, rotationCompletion,
+integrityExhaustion, futureReturnCompression, domTransfer** — all sourced from
+the V72/V73 physics engines (FRZ, EAE, RE, EDE, Rotation, DOM, Geometric
+Capacity, Integrity, Maturity, Future Return).
+
+## Panel Display
+
+```
+M5
+PRE-NEW HIGH LIQUIDATION WAVE
+Subphase: Expansion        Distance: 61%   Arrival: No
+   → Displacement          Distance: 42%
+   → Induction             Distance: 23%
+   → Terminal Liquidation  Distance: 8%    Arrival: Imminent
+OBJECTIVE ARRIVAL → New High Completed → Absorption Beginning
+```
+
+## Critical Architectural Rule
+
+The six stages (Initialization, Expansion, Displacement, Induction, Terminal
+Liquidation, Objective Arrival) **MUST NOT become independent canonical phases.**
+They exist only *inside* the Pre-Objective Liquidation Wave as informational
+states. The canonical Engine 1A lifecycle remains unchanged.
+
+## Philosophical Foundation
+
+There is not truly an "Expansion Liquidity" phase — there is a *wave whose
+purpose is to finish expansion*, and a *wave whose purpose is to finish
+retracement*. Those waves are where liquidity is swept, destinations fill,
+energy exhausts, participation transfers, supply/demand activate, capacity
+collapses, rotations complete, change of character forms, and reversals begin.
+Engine 1A.7 models them at high enough resolution that V71/V72/V73 can
+distinguish *"liquidation has started"* from *"the objective has actually been
+reached and the real reversal has begun."*
+
+---
+
+## Implementation Mapping (as built in `Spartica.txt` → `f_v72_run`)
+
+| Spec concept | Implementation |
+|---|---|
+| Wave armed | `_liqArm` = `ie1a_currentPhase ∈ {Expansion Induction, Retracement Induction}` |
+| Objective / destination | `liq_target` = ranked destination `dc_bestPrice` → `eae_primaryAttractorPrice` → `frz_bestZoneMid` |
+| Origin / initial distance | `liq_origin`, `liq_initDist` captured at birth (close, |target−close|) |
+| Distance compression (no time) | `liq_distancePct` = remaining / initial × 100 |
+| Magnet / pull-driven | `_liqMagnet` from `frz_inProximity` / `frz_distanceToZone < frzProximityATR` |
+| Capacity exhaustion | `_liqCapExh` from `ede_dissipationProgress` / `convexityMaturity` |
+| Rotation/resolution complete | `_liqRotDone` from `rot_transferProbability` / `re_resolutionState` |
+| Momentum collapse | `_liqEnergyLo` from `efficiency < effThresh·0.7` |
+| Sub-phase | `liq_subPhase` (Initialization→Objective Arrival) from distance + physics |
+| Objective Arrival (S∧M∧P) | `liq_objArrival` = `_liqArrStruct ∧ _liqEnergyLo ∧ _liqArrPhys` |
+| True CHoCH (not BOS alone) | `liq_trueCHoCH` = `liq_objArrival ∧ counter-BOS ∧ collapse ∧ RESOLVED` |
+| Absorption gate | overlay holds until `liq_objArrival ∧ liq_trueCHoCH`, then retires |
+| Panel | Market Story headline + dedicated readout (Subphase / Target / Distance / Arrival) |
+
+**Known limitation (honest):** because the canonical Absorption phase is assigned
+*upstream* of the physics engines (source-order constraint documented in Part
+1/§1.7), the Absorption gate is enforced at the **overlay/consumer layer** (the
+liquidation wave dominates the displayed narrative and DOE-facing story until
+arrival + true CHoCH), not by rewriting the upstream `f_se` phase assignment. A
+full upstream gate requires the source reorder described in Part 1 and is
+deferred to the implementation phase of the constitution.
