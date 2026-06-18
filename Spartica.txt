@@ -643,6 +643,12 @@ f_se(simple int _pvLen, simple int _stLen, simple int _atrL, simple float _effT,
     bool  _momDecaying  = _dir == 1 ? _bullDec : _bearDec
     bool  _momCounter   = _dir == 1 ? _bearImp : _bullImp
     bool  _momExhaust   = _eff < _effT * 0.65 and _absScore > 40.0
+    // PHYSICS behaviour (bar-level orderflow observed inside this tf's engine) — these
+    // are the physics dimension that must CONFIRM each structural event before the
+    // lifecycle phase may advance (no structure-only shortcuts remain).
+    bool  _physConvexDevel = _convScore > 35.0                        // convexity developing
+    bool  _physTransfer    = _convScore > 48.0 or _absScore > 40.0    // participation/energy transfer
+    bool  _physCapacityLow = _absScore > 45.0 or _eff < _effT * 0.6   // geometric capacity collapsing
 
     // Monotonic lifecycle STATE MACHINE — advances and HOLDS within a wave, and
     // resets only on a new wave spawn (direction flip). This is the fix for the
@@ -655,17 +661,17 @@ f_se(simple int _pvLen, simple int _stLen, simple int _atrL, simple float _effT,
         bool _expanding = _momExpStrong or _eLong or _eShort or (_dir == 1 ? _bullImp : _bearImp)
         if _phaseState < 1 and _expanding
             _phaseState := 1                          // Expansion
-        if _phaseState < 2 and _bos1
+        if _phaseState < 2 and _bos1 and _momDecaying and _physConvexDevel
             _phaseState := 2                          // Expansion Pre-Convexity
-        if _phaseState < 3 and _bos1 and _momCounter
+        if _phaseState < 3 and _bos1 and _momCounter and _physTransfer
             _phaseState := 3                          // Expansion Induction
-        if _phaseState < 4 and _bos2
+        if _phaseState < 4 and _bos2 and (_momDecaying or _momCounter) and _physTransfer
             _phaseState := 4                          // Expansion Liquidity
-        if _phaseState < 5 and _indBrk
+        if _phaseState < 5 and _indBrk and _momExpStrong
             _phaseState := 5                          // New High/Low (origin reclaimed)
-        if _phaseState >= 5 and _momExhaust
+        if _phaseState >= 5 and _momExhaust and _physCapacityLow
             _phaseState := 7                          // Absorption
-        if _phaseState >= 5 and _momCounter and not _momExhaust
+        if _phaseState >= 5 and _momCounter and not _momExhaust and _physTransfer
             _phaseState := 8                          // Retracement (turning)
     // EXPORTED phase = LIVE behavioural read so the label tracks the CURRENT
     // lifecycle (expansion / absorption / retracement) every bar, instead of
@@ -673,9 +679,9 @@ f_se(simple int _pvLen, simple int _stLen, simple int _atrL, simple float _effT,
     // (untouched) still drives the wave-progress %.
     int _phase = _phaseState
     if _dir != 0
-        _phase := _momExhaust   ? 7 :
-                  _momCounter   ? (_convScore > 40.0 ? 10 : _momDecaying ? 9 : 8) :
-                  _momExpStrong ? (_phaseState >= 5 ? _phaseState : _bos2 ? 4 : _bos1 ? 2 : 1) :
+        _phase := _momExhaust and _physCapacityLow ? 7 :
+                  _momCounter and _physTransfer    ? (_convScore > 40.0 ? 10 : _momDecaying ? 9 : 8) :
+                  _momExpStrong ? (_phaseState >= 5 ? _phaseState : (_bos2 and _physTransfer) ? 4 : (_bos1 and _physConvexDevel) ? 2 : 1) :
                   _momDecaying  ? (_phaseState >= 5 ? _phaseState : 4) :
                   _phaseState == 0 ? 1 :
                   _phaseState
