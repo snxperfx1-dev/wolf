@@ -232,7 +232,7 @@ f_mosBar(float _pct) =>
 // Compact phase abbreviation for on-chart labels (keeps the chart uncluttered).
 f_phaseAbbr(string _p) =>
     str.contains(_p, "Liquidation Wave") ? "LQW" :
-    _p == "Expansion"                ? "EXP"    :
+     _p == "Expansion"                ? "EXP"    :
      _p == "Expansion Pre-Convexity" ? "EXP·PC" :
      _p == "Expansion Induction"     ? "EXP·IN" :
      _p == "Expansion Liquidity"     ? "EXP·LQ" :
