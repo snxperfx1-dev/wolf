@@ -5663,71 +5663,36 @@ f_v72_run(int _dir3, int _dir4, array<float> _cf, array<int> _ci, array<bool> _c
     // Opportunity class word.
     string _cmdOppClass = oppProgress >= 85 ? "High quality" : oppProgress >= 60 ? "Confirming" : oppProgress >= 20 ? "Developing" : "Stand down"
 
+    // ══════════ MARKET OPERATING SYSTEM (MOS) — cognition / language layer ══════════
+    // Natural-language intelligence composed ONLY from existing engine outputs
+    // (Engine 1A phase, rotation state, destination engine, opportunity, threats,
+    // stack). No new math — these are sentences, not variables.
+    string _mosSide   = displayWaveDir_M5 == 1 ? "buyers" : displayWaveDir_M5 == -1 ? "sellers" : "neither side"
+    string story_now    = ie1a_currentPhase + " is the active phase and " + _mosSide + " hold the initiative."
+    string story_why    = _rotState == "FULL CASCADE"   ? "All timeframes are aligned and pressure flows one way." : _rotState == "ROTATION MATURE" ? "Pressure is transferring up the timeframes; the move is maturing." : _rotState == "ROTATION ACTIVE" ? "Control is rotating between timeframes as pressure transfers." : "Pressure is still accumulating before a clear transfer."
+    string story_dest   = dc_aClass ? ("Energy is converging on the " + tpl_source + " destination (" + tpl_winnerClass + ").") : "No high-quality destination has formed; the market is still scanning."
+    string story_threat = inv_invalidated ? "The active structure is invalidated - continuation is in doubt." : (displayWaveDir_H1 != 0 and displayWaveDir_H1 != displayWaveDir_M5) ? "Higher-timeframe (H1) disagreement is the main risk." : "No immediate structural threat is visible."
+    string story_outlook= oppState == "TRADE ACTIVE" ? "A live opportunity is in play." : oppState == "PREPARE TO EXECUTE" ? "Conditions are lining up for entry." : oppProgress >= 20 ? "An opportunity is developing but unconfirmed." : "Best to stand aside until structure improves."
+    string cop_next     = displayWaveDir_M5 == 1 ? "Further upside remains favoured while structure holds." : displayWaveDir_M5 == -1 ? "Further downside remains favoured while structure holds." : "Direction stays unresolved until a wave takes control."
+    string cop_action   = (oppState == "PREPARE TO EXECUTE" or oppState == "TRADE ACTIVE") ? "Act on return-zone interaction; manage against the structural stop." : "Wait for a return-zone interaction before committing."
+
     // ── V72.12 Dashboards ────────────────────────────────────────────────────
     if barstate.islast and showTable and showV72Command
-        var table cmd = table.new(commandPanelYOffset == "Top" ? position.top_right : commandPanelYOffset == "Middle" ? position.middle_right : position.bottom_right, 2, 30, bgcolor=color.new(#05050f, 0), border_color=color.new(#00ffcc, 40), border_width=1, frame_color=color.new(#00ffcc, 10), frame_width=1)
-        table.cell(cmd, 0, 0, "V72 COMMAND", text_color=color.white, bgcolor=color.new(#0a0a30, 0), text_size=_szCmd)
-        table.cell(cmd, 1, 0, oppState, text_color=color.black, bgcolor=(oppState == "TRADE ACTIVE" ? #00ff88 : oppState == "PREPARE TO EXECUTE" ? color.lime : oppState == "OPPORTUNITY CONFIRMING" ? color.yellow : oppState == "OPPORTUNITY FORMING" ? color.orange : color.gray), text_size=_szCmd)
-        table.cell(cmd, 0, 1, "Bias", text_color=#00ffcc, text_size=_szCmd)
-        table.cell(cmd, 1, 1, doe_bias + " · " + ie1a_currentPhase + " · " + str.tostring(math.round(fractalStackScore)) + "%", text_color=(displayWaveDir_M5 == 1 ? color.lime : displayWaveDir_M5 == -1 ? color.red : color.gray), text_size=size.large)
-        table.cell(cmd, 0, 2, "Narrative", text_color=#00ffcc, text_size=_szCmd)
-        table.cell(cmd, 1, 2, cmd_narrative, text_color=color.white, text_size=_szCmd)
-        table.cell(cmd, 0, 3, "Opportunity", text_color=#00ffcc, text_size=_szCmd)
-        table.cell(cmd, 1, 3, f_v72_pct(oppProgress) + "  " + _cmdOppClass + "  (" + oppState + ")", text_color=(oppProgress >= 85 ? #00ff88 : oppProgress >= 60 ? color.yellow : oppProgress >= 20 ? color.orange : color.gray), text_size=size.large)
-        table.cell(cmd, 0, 4, "Confidence", text_color=#00ffcc, text_size=_szCmd)
-        table.cell(cmd, 1, 4, f_v72_pct(doe_confidence), text_color=color.white, text_size=_szCmd)
-        table.cell(cmd, 0, 5, "Trade Type", text_color=#00ffcc, text_size=_szCmd)
-        table.cell(cmd, 1, 5, doe_tradeType + " (" + f_v72_pct(doe_confidence) + ")", text_color=color.white, text_size=_szCmd)
-        table.cell(cmd, 0, 6, "Entry Zone", text_color=#00ffcc, text_size=_szCmd)
-        table.cell(cmd, 1, 6, (oppState == "PREPARE TO EXECUTE" or oppState == "TRADE ACTIVE") ? (f_v72_px(doe_entryLow) + " – " + f_v72_px(doe_entryHigh)) : "–", text_color=color.white, text_size=_szCmd)
-        table.cell(cmd, 0, 7, "Entry Trigger", text_color=#00ffcc, text_size=_szCmd)
-        table.cell(cmd, 1, 7, (oppState == "PREPARE TO EXECUTE" or oppState == "TRADE ACTIVE") ? doe_entryTrigger : "–", text_color=color.silver, text_size=_szCmd)
-        table.cell(cmd, 0, 8, "Trade Quality", text_color=#00ffcc, text_size=_szCmd)
-        table.cell(cmd, 1, 8, tqe_grade + " (prov)", text_color=color.black, bgcolor=f_v72_gradeCol(tqe_grade), text_size=size.large)
-        table.cell(cmd, 0, 9, "Risk Level", text_color=#00ffcc, text_size=_szCmd)
-        table.cell(cmd, 1, 9, tqe_riskLevel, text_color=f_v72_riskCol(tqe_riskLevel), text_size=_szCmd)
-        table.cell(cmd, 0, 10, "TP1", text_color=#00ffcc, text_size=_szCmd)
-        table.cell(cmd, 1, 10, f_v72_px(te_tp1) + "  (" + f_v72_pct(te_tp1_quality) + ")", text_color=color.lime, text_size=size.tiny)
-        table.cell(cmd, 0, 11, "TP2", text_color=#00ffcc, text_size=_szCmd)
-        table.cell(cmd, 1, 11, f_v72_px(te_tp2) + "  (" + f_v72_pct(te_tp2_quality) + ")", text_color=color.lime, text_size=size.tiny)
-        table.cell(cmd, 0, 12, "TP3", text_color=#00ffcc, text_size=_szCmd)
-        table.cell(cmd, 1, 12, te_tp3_quality >= 40 ? f_v72_px(te_tp3) + "  (" + f_v72_pct(te_tp3_quality) + ")" : "–", text_color=color.lime, text_size=size.tiny)
-        table.cell(cmd, 0, 13, "Stop", text_color=#00ffcc, text_size=_szCmd)
-        table.cell(cmd, 1, 13, f_v72_px(inv_activeStop) + (inv_invalidated ? " ✗" : ""), text_color=color.red, text_size=_szCmd)
-        table.cell(cmd, 0, 14, "R:R TP1", text_color=#00ffcc, text_size=_szCmd)
-        table.cell(cmd, 1, 14, f_v72_num(te_rr_tp1, 2) + (te_rrGate ? " ✓" : " ✗"), text_color=te_rrGate ? color.lime : color.orange, text_size=_szCmd)
-        table.cell(cmd, 0, 15, "Wave Phase", text_color=#00ffcc, text_size=_szCmd)
-        table.cell(cmd, 1, 15, ie1a_currentPhase + " (" + f_v72_pct(ie1a_phaseConfidence) + ")  Dom:" + (dominantWaveLevel == "L2 HTF" ? "H1" : dominantWaveLevel == "L1 CHILD" ? "M15" : dominantWaveLevel == "L0 PRIMARY" ? "M5" : "M3"), text_color=color.white, text_size=_szCmd)
-        table.cell(cmd, 0, 16, "ERF Readiness", text_color=#00ffcc, text_size=_szCmd)
-        table.cell(cmd, 1, 16, f_v72_pct(erf_tradeReadiness) + (erf_entryGate ? " ✓" : " ✗"), text_color=erf_entryGate ? color.lime : color.orange, text_size=_szCmd)
-        table.cell(cmd, 0, 17, "FRZ Distance", text_color=#00ffcc, text_size=_szCmd)
-        table.cell(cmd, 1, 17, na(frz_distanceToZone) ? "–" : f_v72_num(frz_distanceToZone, 2) + " ATR", text_color=color.silver, text_size=size.tiny)
-        table.cell(cmd, 0, 18, "Primary Attractor", text_color=#00ffcc, text_size=_szCmd)
-        table.cell(cmd, 1, 18, na(eae_primaryAttractorPrice) ? "–" : (f_v72_px(eae_primaryAttractorPrice) + "\n" + eae_primaryAttractorLabel + "\nScore " + str.tostring(math.round(eae_primaryAttractorScore)) + "\n" + (frz_activeCount > 0 or dc_aClass ? "Structural candidate present" : "Residual liquidity\nNo structural candidate")), text_color=color.aqua, text_size=_szCmd)
-        table.cell(cmd, 0, 19, "Convergence", text_color=#00ffcc, text_size=_szCmd)
-        table.cell(cmd, 1, 19, frz_attractorConvergence ? "● ACTIVE" : "○ none", text_color=frz_attractorConvergence ? #00ffcc : color.gray, text_size=_szCmd)
-        table.cell(cmd, 0, 20, "ROTATION", text_color=#00ffcc, text_size=_szCmd)
-        table.cell(cmd, 1, 20, _cmdHtfWhy, text_color=color.silver, text_size=_szCmd)
-        table.cell(cmd, 0, 21, "Exec Read", text_color=#00ffcc, text_size=_szCmd)
-        table.cell(cmd, 1, 21, _cmdExecWhy, text_color=color.silver, text_size=_szCmd)
-        table.cell(cmd, 0, 22, "Stack Align", text_color=#00ffcc, text_size=_szCmd)
-        table.cell(cmd, 1, 22, _cmdStackSummary,
-             text_color=fractalStackScore >= 80 ? #00ff88 : fractalStackScore >= 60 ? color.yellow : color.silver,
-             text_size=_szCmd)
-        table.cell(cmd, 0, 23, "DESTINATION", text_color=color.black, bgcolor=color.new(color.yellow, 0), text_size=_szCmd)
-        table.cell(cmd, 1, 23, dc_primaryStr, text_color=color.black, bgcolor=(not dc_aClass ? color.gray : tpl_confidence >= 92 ? #00ff88 : tpl_confidence >= 85 ? color.lime : color.yellow), text_size=size.normal)
-        table.cell(cmd, 0, 24, "Dest Source", text_color=#00ffcc, text_size=_szCmd)
-        table.cell(cmd, 1, 24, tpl_source + "\n" + tpl_reason, text_color=color.silver, text_size=_szCmd)
-        table.cell(cmd, 0, 25, "Dest Dist", text_color=#00ffcc, text_size=_szCmd)
-        table.cell(cmd, 1, 25, na(tpl_distanceATR) ? "–" : (str.tostring(tpl_distanceATR, "#.0") + " ATR  " + tpl_status), text_color=color.white, text_size=_szCmd)
-        table.cell(cmd, 0, 26, "Secondary", text_color=#00ffcc, text_size=_szCmd)
-        table.cell(cmd, 1, 26, dc_secondaryStr, text_color=color.silver, text_size=_szCmd)
-        table.cell(cmd, 0, 27, "Rev Dest", text_color=color.orange, text_size=_szCmd)
-        table.cell(cmd, 1, 27, not showV72RevDest ? "(off)" : na(tpl_revTarget) ? "–" : (f_v72_px(tpl_revTarget) + " (" + tpl_revSource + ")"), text_color=color.orange, text_size=_szCmd)
-        table.cell(cmd, 0, 28, "Cand Scores", text_color=#00ffcc, text_size=_szCmd)
-        table.cell(cmd, 1, 28, tpl_scoreboard, text_color=color.silver, text_size=_szCmd)
-        table.cell(cmd, 0, 29, "Third", text_color=#00ffcc, text_size=_szCmd)
-        table.cell(cmd, 1, 29, dc_thirdStr, text_color=color.silver, text_size=_szCmd)
+        var table mosStory = table.new(position.top_center, 1, 6, bgcolor=color.new(#05050f, 86), frame_color=color.new(#00ffcc, 45), frame_width=1, border_width=0)
+        table.cell(mosStory, 0, 0, "════════  MARKET STORY  ════════", text_color=#00ffcc, text_size=size.normal)
+        table.cell(mosStory, 0, 1, story_now,     text_color=color.white,  text_size=size.normal)
+        table.cell(mosStory, 0, 2, story_why,     text_color=color.silver, text_size=size.small)
+        table.cell(mosStory, 0, 3, story_dest,    text_color=color.aqua,   text_size=size.small)
+        table.cell(mosStory, 0, 4, story_threat,  text_color=(inv_invalidated ? color.red : color.orange), text_size=size.small)
+        table.cell(mosStory, 0, 5, story_outlook, text_color=(oppProgress >= 60 ? color.lime : color.yellow), text_size=size.small)
+
+        var table mosCop = table.new(position.bottom_right, 1, 6, bgcolor=color.new(#05050f, 84), frame_color=color.new(#00ffcc, 45), frame_width=1, border_width=0)
+        table.cell(mosCop, 0, 0, "──────  COPILOT  ──────", text_color=#00ffcc, text_size=size.small)
+        table.cell(mosCop, 0, 1, "CURRENT   " + ie1a_currentPhase + " remains the dominant behaviour.", text_color=color.white, text_size=size.small)
+        table.cell(mosCop, 0, 2, "WHY       " + story_why, text_color=color.silver, text_size=size.small)
+        table.cell(mosCop, 0, 3, "NEXT      " + cop_next, text_color=color.aqua, text_size=size.small)
+        table.cell(mosCop, 0, 4, "THREAT    " + story_threat, text_color=color.orange, text_size=size.small)
+        table.cell(mosCop, 0, 5, "ACTION    " + cop_action, text_color=color.lime, text_size=size.small)
     0
 
 // ── Run the V72 engine once per bar ──────────────────────────────────────────
