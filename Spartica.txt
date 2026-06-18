@@ -5622,8 +5622,8 @@ f_v72_run(int _dir3, int _dir4, array<float> _cf, array<int> _ci, array<bool> _c
     // V2 diagnostic scoreboard — top structural candidates (proves winner = max).
     string tpl_scoreboard = dc_scoreboard
     // Destination friendly type + letter class (from the winning candidate score).
-    string _destType  = tpl_source
     string _destClass = tpl_winnerClass
+    string _destType  = tpl_source
     // Multi-line winner reasoning (the fallback projection case is fully expanded).
     string tpl_reason = dc_aClass ? (tpl_winnerClass + " structural zone\n" + tpl_source + (mce_htfAlignmentScore >= 60 ? "\nHTF aligned" : "")) : "No A-class zone yet\nExpanding candidate search\nWeak fallbacks suppressed"
     // Per-timeframe stack alignment (multi-line ✓/✗ vs dominant stack direction).
@@ -5703,7 +5703,7 @@ f_v72_run(int _dir3, int _dir4, array<float> _cf, array<int> _ci, array<bool> _c
         table.cell(cmd, 0, 17, "FRZ Distance", text_color=#00ffcc, text_size=_szCmd)
         table.cell(cmd, 1, 17, na(frz_distanceToZone) ? "–" : f_v72_num(frz_distanceToZone, 2) + " ATR", text_color=color.silver, text_size=size.tiny)
         table.cell(cmd, 0, 18, "Primary Attractor", text_color=#00ffcc, text_size=_szCmd)
-        table.cell(cmd, 1, 18, na(eae_primaryAttractorPrice) ? "–" : (f_v72_px(eae_primaryAttractorPrice) + "\n" + eae_primaryAttractorLabel + "\nScore " + str.tostring(math.round(eae_primaryAttractorScore)) + "\n" + (frz_activeCount > 0 or not na(tpl_fuTarget) ? "Structural candidate present" : "Residual liquidity\nNo structural candidate")), text_color=color.aqua, text_size=_szCmd)
+        table.cell(cmd, 1, 18, na(eae_primaryAttractorPrice) ? "–" : (f_v72_px(eae_primaryAttractorPrice) + "\n" + eae_primaryAttractorLabel + "\nScore " + str.tostring(math.round(eae_primaryAttractorScore)) + "\n" + (frz_activeCount > 0 or dc_aClass ? "Structural candidate present" : "Residual liquidity\nNo structural candidate")), text_color=color.aqua, text_size=_szCmd)
         table.cell(cmd, 0, 19, "Convergence", text_color=#00ffcc, text_size=_szCmd)
         table.cell(cmd, 1, 19, frz_attractorConvergence ? "● ACTIVE" : "○ none", text_color=frz_attractorConvergence ? #00ffcc : color.gray, text_size=_szCmd)
         table.cell(cmd, 0, 20, "ROTATION", text_color=#00ffcc, text_size=_szCmd)
