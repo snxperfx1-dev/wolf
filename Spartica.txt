@@ -3967,10 +3967,21 @@ float execProb_StandDown = math.min(
      (physicsConsensus < 30 ? 20.0 : 0.0),
      100.0)
 
+// Engine 1A.7 / authority gate: while the objective-completion wave is in progress,
+// the objective is NOT yet reached — suppress reversal/absorption probability and
+// raise Stand Down. Once the objective has ARRIVED, the turn is at hand → boost reversal.
+if liqg_active and not (liqg_objArrival and liqg_trueCHoCH)
+    execProb_Reversal   := execProb_Reversal   * 0.4
+    execProb_Absorption := execProb_Absorption * 0.4
+    execProb_StandDown  := math.min(100.0, execProb_StandDown + 15.0)
+if liqg_objArrival
+    execProb_Reversal   := math.min(100.0, execProb_Reversal + 25.0)
+
 float execMaxProb = math.max(execProb_Continuation, execProb_Reversal,
      execProb_Expansion, execProb_Creation, execProb_Absorption, execProb_StandDown)
 
 string execDirective =
+     (liqg_active and not (liqg_objArrival and liqg_trueCHoCH)) ? "AWAIT OBJECTIVE — LIQUIDATION WAVE" :
      execProb_StandDown  >= 55                      ? "STAND DOWN — NO ALIGNMENT"            :
      _ep_conflict and execProb_Reversal >= 45       ? "TRANSITION — LTF COUNTER HTF"         :
      execProb_Absorption == execMaxProb             ? "ABSORPTION — PREPARE REVERSAL"        :
