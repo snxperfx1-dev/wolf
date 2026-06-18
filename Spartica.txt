@@ -229,6 +229,23 @@ f_mosBar(float _pct) =>
     int _n = math.round(math.min(math.max(_pct, 0.0), 100.0) / 10.0)
     str.repeat("█", _n) + str.repeat("░", 10 - _n)
 
+// Compact phase abbreviation for on-chart labels (keeps the chart uncluttered).
+f_phaseAbbr(string _p) =>
+    _p == "Expansion"                ? "EXP"    :
+     _p == "Expansion Pre-Convexity" ? "EXP·PC" :
+     _p == "Expansion Induction"     ? "EXP·IN" :
+     _p == "Expansion Liquidity"     ? "EXP·LQ" :
+     _p == "New High"                ? "NEW HI" :
+     _p == "New Low"                 ? "NEW LO" :
+     _p == "Absorption"              ? "ABS"    :
+     _p == "Retracement"             ? "RET"    :
+     _p == "Retracement Pre-Convexity" ? "RET·PC" :
+     _p == "Retracement Induction"   ? "RET·IN" :
+     _p == "Retracement Liquidity"   ? "RET·LQ" :
+     _p == "Demand Return"           ? "DEM·RTN" :
+     _p == "Supply Return"           ? "SUP·RTN" :
+     _p == "Point 4 Origin"          ? "P4" : _p
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // SECTION 2 — CORE PHYSICS ENGINE
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -3325,9 +3342,9 @@ bool die_narrativeVisible =
 if showNarrative and die_narrativeChanged and direction != 0 and f_die_show(80) and die_narrativeVisible
     label.new(bar_index,
          direction == 1 ? high + atr * 1.2 : low - atr * 1.2,
-         die_narrativeDir,
+         f_phaseAbbr(die_narrativeDir),
          style=direction == 1 ? label.style_label_down : label.style_label_up,
-         color=color.new(die_narrCol, 40), textcolor=color.black, size=size.small)
+         color=color.new(die_narrCol, 40), textcolor=color.black, size=size.tiny)
     die_labelCount := die_labelCount + 1
 
 // ── DIE-7: ENTRY CYCLE CLUSTER TRACKING ──────────────────────────────────────
