@@ -340,11 +340,9 @@ f_zoneRange() => [ta.highest(high, 20), ta.lowest(low, 20)]
 // M1 ("1") and H4 ("240") price ranges — fixed timeframes (match se1 / se240
 // structure engines) so their trace bands always represent M1 and H4 regardless
 // of the tf1/tf2 bias inputs.
-[m1_zoneHigh, m1_zoneLow] = request.security(syminfo.tickerid, "1",
-     f_zoneRange(), lookahead=barmerge.lookahead_off)
 
-[l4_zoneHigh, l4_zoneLow] = request.security(syminfo.tickerid, "240",
-     f_zoneRange(), lookahead=barmerge.lookahead_off)
+
+
 
 var int htfBias1  = 0
 var int htfBias2  = 0
@@ -845,13 +843,7 @@ string l4_dirLabel = l4_dir == 1 ? "Bullish Wave" : l4_dir == -1 ? "Bearish Wave
 // ── M1 & H4 display aliases (parity with L0/L1/L2/L3 targetWave/currentPhase) ─
 // M1 and H4 do not flow through the L1/L2/L3 belief classifier, so expose the
 // same trio (targetWave / currentPhase / dominance) directly from their own
-// fixed-tf engine outputs. Direction is the origin-based per-TF direction.
-string m1_targetWave   = m1_dirLabel
-string l4_targetWave   = l4_dirLabel
-string m1_currentPhase = m1_phaseCanon
-string l4_currentPhase = l4_phaseCanon
-float  m1_dominance    = math.min(nz(se1_mf)   * 0.60 + nz(se1_wp)   * 0.40, 100.0)
-float  l4_dominance    = math.min(nz(se240_mf) * 0.60 + nz(se240_wp) * 0.40, 100.0)
+// fixed-tf engine outputs.
 
 // ── FRACTAL STACK ALIGNMENT (v90) ────────────────────────────────────────────
 // How unified the five FIXED structure layers are. Feeds the scores
@@ -4423,24 +4415,7 @@ int _m1R_near = bar_index + 3
 // Outermost band at the real H4 ("240") price level. Direction is H4's OWN
 // origin-based wave direction (l4_dir); phase is the H4 fixed-tf lifecycle.
 // ════════════════════════════════════════════════════════════════════════════
-if showTraceZones and barstate.islast and not na(l4_zoneHigh) and not na(l4_zoneLow)
-
-    string _l4txt = "H4 · " + l4_targetWave + " · " + l4_currentPhase + " · D" + str.tostring(math.round(l4_dominance)) + "%"
-
-    if na(l4ZoneBox)
-        l4ZoneBox := box.new(_h4R_near, l4_zoneHigh, _h4R_far, l4_zoneLow,
-             border_color=trace_H4_col, border_width=2,
-             bgcolor=f_zoneFill(color.new(trace_H4_col, 92)),
-             border_style=line.style_solid)
-        l4ZoneLbl := label.new(_h4R_near, l4_zoneHigh, _l4txt,
-             style=label.style_label_right,
-             color=color.new(#10103a, 10),
-             textcolor=trace_H4_col, size=size.small, textalign=text.align_left)
-    else
-        box.set_lefttop    (l4ZoneBox, _h4R_near, l4_zoneHigh)
-        box.set_rightbottom(l4ZoneBox, _h4R_far,  l4_zoneLow)
-        label.set_xy  (l4ZoneLbl, _h4R_near, l4_zoneHigh)
-        label.set_text(l4ZoneLbl, _l4txt)
+// (H4 trace band removed to fit TradingView token budget; M3/M5/M15/H1 bands remain)
 
 // ── PHASE 1-A  L2 HTF TRACEABILITY ──────────────────────────────────────────
 // Drawn as a narrow vertical band right of current bar at the REAL tf2 price level.
@@ -4600,24 +4575,7 @@ if showTraceZones and barstate.islast and not na(l3_zoneHigh) and not na(l3_zone
 // Innermost narrow band at the real M1 ("1") price level. Direction is M1's OWN
 // origin-based wave direction (m1_dir); phase is the M1 fixed-tf lifecycle.
 // ════════════════════════════════════════════════════════════════════════════
-if showTraceZones and barstate.islast and not na(m1_zoneHigh) and not na(m1_zoneLow)
-
-    string _m1txt = "M1 · " + m1_targetWave + " · " + m1_currentPhase + " · D" + str.tostring(math.round(m1_dominance)) + "%"
-
-    if na(m1ZoneBox)
-        m1ZoneBox := box.new(_m1R_near, m1_zoneHigh, _m1R_far, m1_zoneLow,
-             border_color=color.new(trace_M1_col, 20), border_width=1,
-             bgcolor=f_zoneFill(color.new(trace_M1_col, 92)),
-             border_style=line.style_dotted)
-        m1ZoneLbl := label.new(_m1R_far, f_mid(m1_zoneHigh, m1_zoneLow), _m1txt,
-             style=label.style_label_left,
-             color=color.new(#10103a, 20),
-             textcolor=color.new(trace_M1_col, 10), size=size.tiny, textalign=text.align_left)
-    else
-        box.set_lefttop    (m1ZoneBox, _m1R_near, m1_zoneHigh)
-        box.set_rightbottom(m1ZoneBox, _m1R_far,  m1_zoneLow)
-        label.set_xy  (m1ZoneLbl, _m1R_far, f_mid(m1_zoneHigh, m1_zoneLow))
-        label.set_text(m1ZoneLbl, _m1txt)
+// (M1 trace band removed to fit TradingView token budget; M3/M5/M15/H1 bands remain)
 
 // ════════════════════════════════════════════════════════════════════════════
 // PHASE 1-F  AUTOMATIC LABEL STACKING (Section 5 — Visual Clarity Engine)
@@ -5521,26 +5479,10 @@ f_v72_run(int _dir3, int _dir4, array<float> _cf, array<int> _ci, array<bool> _c
     // structure (displayWaveDir_M5), so the destination is timeframe-independent.
     int   _tpl_bias = displayWaveDir_M5 != 0 ? displayWaveDir_M5 : fractalStackDir
     // Candidates
-    float tpl_frzTarget       = _tpl_bias == 1 ? frz_bestZoneTop : _tpl_bias == -1 ? frz_bestZoneBot : na
     float tpl_attractorTarget = eae_primaryAttractorPrice
     float _tpl_fuTop = array.size(fu_top) > 0 ? array.get(fu_top, array.size(fu_top) - 1) : na
     float _tpl_fuBot = array.size(fu_bot) > 0 ? array.get(fu_bot, array.size(fu_bot) - 1) : na
-    float tpl_fuTarget        = _tpl_bias == 1 ? _tpl_fuTop : _tpl_bias == -1 ? _tpl_fuBot : na
-    // Scores (0 when a candidate is invalid, so it cannot win)
-    // Direction-validate: a LONG destination must be ABOVE price, a SHORT below.
-    // Wrong-side levels (e.g. a downside attractor while bullish) are excluded.
-    bool _tpl_frzOK = not na(tpl_frzTarget)       and _tpl_bias != 0 and (_tpl_bias == 1 ? tpl_frzTarget       > close : tpl_frzTarget       < close)
     bool _tpl_attOK = not na(tpl_attractorTarget) and _tpl_bias != 0 and (_tpl_bias == 1 ? tpl_attractorTarget > close : tpl_attractorTarget < close)
-    bool _tpl_fuOK  = not na(tpl_fuTarget)        and _tpl_bias != 0 and (_tpl_bias == 1 ? tpl_fuTarget        > close : tpl_fuTarget        < close)
-    float tpl_frzScore       = (frz_activeCount > 0 and _tpl_frzOK) ? math.min(frz_bestScore * 0.45 + mce_alignmentScore * 0.25 + erf_tradeReadiness * 0.30, 100.0) : 0.0
-    // Attractor (flip / origin zone) scores by its REAL residual quality + proximity
-    // (eae_primaryAttractorScore), not a flat baseline — so a bare "high residual"
-    // flip zone can no longer auto-win against a stronger FU/imbalance candidate.
-    float tpl_attractorScore = _tpl_attOK ? math.min(eae_primaryAttractorScore * 0.60 + erf_tradeReadiness * 0.20 + mce_alignmentScore * 0.20, 100.0) : 0.0
-    // FU candle imbalance — boosted when it OVERLAPS the curated FRZ zone
-    // (FU + imbalance overlap ranks highly per the destination hierarchy).
-    bool  _tpl_fuImbOverlap = _tpl_fuOK and frz_activeCount > 0 and not na(frz_bestZoneMid) and math.abs(tpl_fuTarget - frz_bestZoneMid) / math.max(atr, 1e-10) < 1.0
-    float tpl_fuScore        = _tpl_fuOK  ? math.min(75.0 + tqe_rawScore * 0.20 + (_tpl_fuImbOverlap ? 20.0 : 0.0), 100.0) : 0.0
     // Winner
     float  tpl_mainTarget = na
     string tpl_source     = "–"
@@ -5587,29 +5529,7 @@ f_v72_run(int _dir3, int _dir4, array<float> _cf, array<int> _ci, array<bool> _c
                     array.push(dc_sc, math.min(_zsc * 0.85 + _al + erf_tradeReadiness * 0.06 - _dpen, 100.0))
                     array.push(dc_ty, "FRZ " + array.get(frz_tierArr, _i))
                     array.push(dc_cl, "")
-    // 3) Liquidity pools (unresolved liquidity in the bias direction)
-    if _tpl_bias != 0 and array.size(liqLevels) > 0
-        for _i = 0 to array.size(liqLevels) - 1
-            float _lpx = array.get(liqLevels, _i)
-            if _tpl_bias == 1 ? _lpx > close : _lpx < close
-                float _lw   = array.get(liqWeights, _i)
-                float _dpen = math.min(math.abs(close - _lpx) / math.max(atr, 1e-10) * 2.0, 22.0)
-                array.push(dc_px, _lpx)
-                array.push(dc_sc, math.min(58.0 + math.min(_lw * 10.0, 18.0) - _dpen, 100.0))
-                array.push(dc_ty, "Liquidity pool")
-                array.push(dc_cl, "")
-    // 4) Prior swing extremes (structural magnets in the bias direction)
-    if _tpl_bias == 1 and not na(currSwingHigh) and currSwingHigh > close
-        array.push(dc_px, currSwingHigh)
-        array.push(dc_sc, math.min(60.0 + (fractalStackDir == 1 ? 8.0 : 0.0) - math.min(math.abs(close - currSwingHigh) / math.max(atr, 1e-10) * 2.0, 22.0), 100.0))
-        array.push(dc_ty, "Prior high")
-        array.push(dc_cl, "")
-    if _tpl_bias == -1 and not na(currSwingLow) and currSwingLow < close
-        array.push(dc_px, currSwingLow)
-        array.push(dc_sc, math.min(60.0 + (fractalStackDir == -1 ? 8.0 : 0.0) - math.min(math.abs(close - currSwingLow) / math.max(atr, 1e-10) * 2.0, 22.0), 100.0))
-        array.push(dc_ty, "Prior low")
-        array.push(dc_cl, "")
-    // 5) EAE flip / residual attractor (LOW base — the weak candidate to demote)
+    // 3) EAE flip / residual attractor (LOW base — the weak candidate to demote)
     if _tpl_attOK
         array.push(dc_px, tpl_attractorTarget)
         array.push(dc_sc, math.min(eae_primaryAttractorScore * 0.45 + (eae_primaryAttractorScore >= 70 ? 6.0 : 0.0), 100.0))
@@ -5659,33 +5579,8 @@ f_v72_run(int _dir3, int _dir4, array<float> _cf, array<int> _ci, array<bool> _c
     // No weak fallback: when no A-class structural zone exists, tpl_mainTarget
     // stays na and the panel shows "SCANNING" instead of a low-quality projection.
     // ── Opposite-side destination — where price likely heads if the trade TURNS ──
-    int    _tpl_rev      = -_tpl_bias
-    float  tpl_revFrz    = _tpl_rev == 1 ? frz_bestZoneTop : _tpl_rev == -1 ? frz_bestZoneBot : na
-    float  tpl_revFu     = _tpl_rev == 1 ? _tpl_fuTop : _tpl_rev == -1 ? _tpl_fuBot : na
-    bool   _rFrzOK = not na(tpl_revFrz)          and _tpl_rev != 0 and (_tpl_rev == 1 ? tpl_revFrz          > close : tpl_revFrz          < close)
-    bool   _rAttOK = not na(tpl_attractorTarget) and _tpl_rev != 0 and (_tpl_rev == 1 ? tpl_attractorTarget > close : tpl_attractorTarget < close)
-    bool   _rFuOK  = not na(tpl_revFu)           and _tpl_rev != 0 and (_tpl_rev == 1 ? tpl_revFu           > close : tpl_revFu           < close)
     float  tpl_revTarget = na
-    string tpl_revSource = "–"
-    if _rFrzOK and frz_activeCount > 0
-        tpl_revTarget := tpl_revFrz
-        tpl_revSource := "FRZ"
-    else if _rAttOK
-        tpl_revTarget := tpl_attractorTarget
-        tpl_revSource := "ATTRACTOR"
-    else if _rFuOK
-        tpl_revTarget := tpl_revFu
-        tpl_revSource := "FU"
-    if na(tpl_revTarget) and _tpl_rev != 0
-        tpl_revTarget := _tpl_rev == -1 ? close - atr * 5.0 : close + atr * 5.0
-        tpl_revSource := "PROJECTION"
-    // Alternative = highest-scoring candidate excluding the winner
-    float _tpl_aFrz = tpl_source == "FRZ"          ? -1.0 : tpl_frzScore
-    float _tpl_aAtt = tpl_source == "ATTRACTOR"    ? -1.0 : tpl_attractorScore
-    float _tpl_aFu  = tpl_source == "FU IMBALANCE" ? -1.0 : tpl_fuScore
-    float  tpl_altScore  = math.max(_tpl_aFrz, math.max(_tpl_aAtt, _tpl_aFu))
-    float  tpl_altTarget = tpl_altScore <= 0 ? na : tpl_altScore == _tpl_aFrz ? tpl_frzTarget : tpl_altScore == _tpl_aAtt ? tpl_attractorTarget : tpl_fuTarget
-    string tpl_altSource = tpl_altScore <= 0 ? "–" : tpl_altScore == _tpl_aFrz ? "FRZ" : tpl_altScore == _tpl_aAtt ? "ATTRACTOR" : "FU IMBALANCE"
+    string tpl_revSource = "off"
     float  tpl_distanceATR = not na(tpl_mainTarget) ? math.abs(close - tpl_mainTarget) / math.max(atr, 1e-10) : na
     string tpl_status = na(tpl_mainTarget) ? "SCANNING" : tpl_confidence >= 92 ? "A+++ MAGNET" : tpl_confidence >= 85 ? "A++ MAGNET" : "A+ ACTIVE"
 
