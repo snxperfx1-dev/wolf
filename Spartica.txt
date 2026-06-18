@@ -659,16 +659,16 @@ f_se(simple int _pvLen, simple int _stLen, simple int _atrL, simple float _effT,
         _phaseState := 0
     if _dir != 0
         bool _expanding = _momExpStrong or _eLong or _eShort or (_dir == 1 ? _bullImp : _bearImp)
-        if _phaseState < 1 and _expanding
-            _phaseState := 1                          // Expansion
+        if _phaseState < 1 and _expanding and not _physTransfer and not _physCapacityLow
+            _phaseState := 1                          // Expansion (structure ∧ momentum ∧ physics: integrity preserved, no transfer, capacity available)
         if _phaseState < 2 and _bos1 and _momDecaying and _physConvexDevel
             _phaseState := 2                          // Expansion Pre-Convexity
         if _phaseState < 3 and _bos1 and _momCounter and _physTransfer
             _phaseState := 3                          // Expansion Induction
         if _phaseState < 4 and _bos2 and (_momDecaying or _momCounter) and _physTransfer
             _phaseState := 4                          // Expansion Liquidity
-        if _phaseState < 5 and _indBrk and _momExpStrong
-            _phaseState := 5                          // New High/Low (origin reclaimed)
+        if _phaseState < 5 and _indBrk and _momExpStrong and not _physCapacityLow
+            _phaseState := 5                          // New High/Low (origin reclaimed ∧ accel restored ∧ capacity/energy available)
         if _phaseState >= 5 and _momExhaust and _physCapacityLow
             _phaseState := 7                          // Absorption
         if _phaseState >= 5 and _momCounter and not _momExhaust and _physTransfer
