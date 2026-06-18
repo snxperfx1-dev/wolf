@@ -644,16 +644,22 @@ f_se(simple int _pvLen, simple int _stLen, simple int _atrL, simple float _effT,
             _phaseState := 7                          // Absorption
         if _phaseState >= 5 and _momCounter and not _momExhaust
             _phaseState := 8                          // Retracement (turning)
+    // EXPORTED phase = LIVE behavioural read so the label tracks the CURRENT
+    // lifecycle (expansion / absorption / retracement) every bar, instead of
+    // latching on "Point 4 Origin" / "Expansion". The monotonic _phaseState
+    // (untouched) still drives the wave-progress %.
     int _phase = _phaseState
+    if _dir != 0
+        _phase := _momExhaust   ? 7 :
+                  _momCounter   ? (_convScore > 40.0 ? 10 : _momDecaying ? 9 : 8) :
+                  _momExpStrong ? (_phaseState >= 5 ? _phaseState : _bos2 ? 4 : _bos1 ? 2 : 1) :
+                  _momDecaying  ? (_phaseState >= 5 ? _phaseState : 4) :
+                  _phaseState == 0 ? 1 :
+                  _phaseState
     if _phase == 5 and _dir == -1
         _phase := 6                                   // New Low (bear wave)
-    if _phase == 8
-        if _convScore > 40.0 and _momCounter
-            _phase := 10                              // Retracement Induction
-        else if _momDecaying and _convScore > 20.0
-            _phase := 9                               // Retracement Pre-Convexity
 
-    float _wp = _phase == 0 ? 10.0 : _phase == 1 ? 25.0 : _phase == 2 ? 40.0 : _phase == 3 ? 55.0 : _phase == 4 ? 65.0 : (_phase == 5 or _phase == 6) ? 75.0 : _phase == 7 ? 90.0 : 80.0
+    float _wp = _phaseState == 0 ? 10.0 : _phaseState == 1 ? 25.0 : _phaseState == 2 ? 40.0 : _phaseState == 3 ? 55.0 : _phaseState == 4 ? 68.0 : _phaseState == 5 ? 80.0 : _phaseState == 7 ? 92.0 : 85.0
     float _cm = math.min(_convScore, 100.0)
     float _mf = math.min(math.max(_expScore, math.max(_absScore, _convScore)) * 0.70 + (_dir != 0 ? 30.0 : 0.0), 100.0)
 
@@ -3884,6 +3890,104 @@ string execDirective =
 // ═══════════════════════════════════════════════════════════════════════════════
 // ── Phase 3 high-conviction alert ─────────────────────────────────────────────
 // ── Dashboard & P3 render calls ─────────────────────────────────────────────
+f_renderDashP3() =>
+    if showTable
+        var table dashP3 = table.new(position.bottom_center, 4, 32,
+             bgcolor=color.new(#0a0a12, 5),
+             border_color=color.new(color.white, 30), border_width=1,
+             frame_color=color.new(color.white, 20), frame_width=1)
+        int _rpL = 1
+        int _rpR = 1
+        if showDP3_Narrative
+            f_sep(dashP3, _rpL, "WAVE NARRATIVE", _ts)
+            _rpL := _rpL + 1
+            table.cell(dashP3, 0, _rpL, "M1", text_color=color.silver, text_size=_szA)
+            table.cell(dashP3, 1, _rpL, narr_m1, text_color=color.gray, text_size=_szA)
+            _rpL := _rpL + 1
+            table.cell(dashP3, 0, _rpL, "M3", text_color=color.silver, text_size=_szA)
+            table.cell(dashP3, 1, _rpL, narr_micro, text_color=color.new(#c084fc, 0), text_size=_szA)
+            _rpL := _rpL + 1
+            table.cell(dashP3, 0, _rpL, "M5", text_color=color.silver, text_size=_szA)
+            table.cell(dashP3, 1, _rpL, narr_primary, text_color=color.lime, text_size=_szA)
+            _rpL := _rpL + 1
+            table.cell(dashP3, 0, _rpL, "M15", text_color=color.silver, text_size=_szA)
+            table.cell(dashP3, 1, _rpL, narr_child, text_color=color.aqua, text_size=_szA)
+            _rpL := _rpL + 1
+            table.cell(dashP3, 0, _rpL, "H1", text_color=color.silver, text_size=_szA)
+            table.cell(dashP3, 1, _rpL, narr_grandchild, text_color=color.yellow, text_size=_szA)
+            _rpL := _rpL + 1
+            table.cell(dashP3, 0, _rpL, "H4", text_color=color.silver, text_size=_szA)
+            table.cell(dashP3, 1, _rpL, narr_l4, text_color=color.new(color.orange, 0), text_size=_szA)
+            _rpL := _rpL + 1
+            table.cell(dashP3, 0, _rpL, "Outcome", text_color=color.silver, text_size=_szA)
+            table.cell(dashP3, 1, _rpL, narr_outcome, text_color=color.white, text_size=_szA)
+            _rpL := _rpL + 1
+            table.cell(dashP3, 0, _rpL, "Fractal Conf", text_color=color.silver, text_size=_szA)
+            table.cell(dashP3, 1, _rpL, str.tostring(math.round(fractalConfidence)) + "%  " + fractalConfLabel, text_color=f_sc(fractalConfidence), text_size=_szA)
+            _rpL := _rpL + 1
+        if showDP3_Fusion
+            f_sep(dashP3, _rpL, "MTF FUSION LAYER", _ts)
+            _rpL := _rpL + 1
+            table.cell(dashP3, 0, _rpL, "Fusion Interp", text_color=color.silver, text_size=_szA)
+            table.cell(dashP3, 1, _rpL, fusionInterpretation, text_color=htfTrendIntact ? color.lime : color.orange, text_size=_szA)
+            _rpL := _rpL + 1
+            table.cell(dashP3, 0, _rpL, "Fusion Conf", text_color=color.silver, text_size=_szA)
+            table.cell(dashP3, 1, _rpL, str.tostring(math.round(fusionConfidence)) + "%", text_color=f_sc(fusionConfidence), text_size=_szA)
+            _rpL := _rpL + 1
+            table.cell(dashP3, 0, _rpL, "HTF Trend", text_color=color.silver, text_size=_szA)
+            table.cell(dashP3, 1, _rpL, htfTrendIntact ? "Intact" : "Weakening", text_color=htfTrendIntact ? color.lime : color.orange, text_size=_szA)
+            _rpL := _rpL + 1
+            table.cell(dashP3, 0, _rpL, "LTF Reversal", text_color=color.silver, text_size=_szA)
+            table.cell(dashP3, 1, _rpL, ltfReversalForming ? "Forming" : "Not yet", text_color=ltfReversalForming ? color.orange : color.gray, text_size=_szA)
+            _rpL := _rpL + 1
+        if showDP3_ExecProb
+            f_sep2(dashP3, _rpR, "EXECUTION PROBABILITY V2", _ts)
+            _rpR := _rpR + 1
+            table.cell(dashP3, 2, _rpR, "Exec Directive", text_color=color.silver, text_size=_szA)
+            table.cell(dashP3, 3, _rpR, execDirective, text_color=execProb_StandDown >= 60 ? color.red : color.white, text_size=_szA)
+            _rpR := _rpR + 1
+            table.cell(dashP3, 2, _rpR, "Continuation", text_color=color.silver, text_size=_szA)
+            table.cell(dashP3, 3, _rpR, str.tostring(math.round(execProb_Continuation)) + "%", text_color=f_sc(execProb_Continuation), text_size=_szA)
+            _rpR := _rpR + 1
+            table.cell(dashP3, 2, _rpR, "Reversal", text_color=color.silver, text_size=_szA)
+            table.cell(dashP3, 3, _rpR, str.tostring(math.round(execProb_Reversal)) + "%", text_color=f_sc(execProb_Reversal), text_size=_szA)
+            _rpR := _rpR + 1
+            table.cell(dashP3, 2, _rpR, "Expansion", text_color=color.silver, text_size=_szA)
+            table.cell(dashP3, 3, _rpR, str.tostring(math.round(execProb_Expansion)) + "%", text_color=f_sc(execProb_Expansion), text_size=_szA)
+            _rpR := _rpR + 1
+            table.cell(dashP3, 2, _rpR, "New High / New Low", text_color=color.silver, text_size=_szA)
+            table.cell(dashP3, 3, _rpR, str.tostring(math.round(execProb_Creation)) + "%", text_color=f_sc(execProb_Creation), text_size=_szA)
+            _rpR := _rpR + 1
+            table.cell(dashP3, 2, _rpR, "Absorption", text_color=color.silver, text_size=_szA)
+            table.cell(dashP3, 3, _rpR, str.tostring(math.round(execProb_Absorption)) + "%", text_color=f_sc(execProb_Absorption), text_size=_szA)
+            _rpR := _rpR + 1
+            table.cell(dashP3, 2, _rpR, "Stand Down", text_color=color.silver, text_size=_szA)
+            table.cell(dashP3, 3, _rpR, str.tostring(math.round(execProb_StandDown)) + "%", text_color=execProb_StandDown >= 60 ? color.red : f_sc(100 - execProb_StandDown), text_size=_szA)
+            _rpR := _rpR + 1
+        if showDP3_WaveProgress
+            f_sep2(dashP3, _rpR, "MULTI-LEVEL WAVE PROGRESS", _ts)
+            _rpR := _rpR + 1
+            table.cell(dashP3, 2, _rpR, "M1", text_color=color.silver, text_size=_szA)
+            table.cell(dashP3, 3, _rpR, m1_phaseCanon + "  " + f_mosBar(nz(se1_wp)) + " " + str.tostring(math.round(nz(se1_wp))) + "%", text_color=color.gray, text_size=_szA)
+            _rpR := _rpR + 1
+            table.cell(dashP3, 2, _rpR, "M3", text_color=color.silver, text_size=_szA)
+            table.cell(dashP3, 3, _rpR, l3_phaseCanon + "  " + f_mosBar(l3_waveProgress) + " " + str.tostring(math.round(l3_waveProgress)) + "%", text_color=color.new(#c084fc, 0), text_size=_szA)
+            _rpR := _rpR + 1
+            table.cell(dashP3, 2, _rpR, "M5", text_color=color.silver, text_size=_szA)
+            table.cell(dashP3, 3, _rpR, l0_phaseCanon + "  " + f_mosBar(l0_waveProgress) + " " + str.tostring(math.round(l0_waveProgress)) + "%", text_color=color.lime, text_size=_szA)
+            _rpR := _rpR + 1
+            table.cell(dashP3, 2, _rpR, "M15", text_color=color.silver, text_size=_szA)
+            table.cell(dashP3, 3, _rpR, l1_phaseCanon + "  " + f_mosBar(l1_waveProgress) + " " + str.tostring(math.round(l1_waveProgress)) + "%", text_color=color.aqua, text_size=_szA)
+            _rpR := _rpR + 1
+            table.cell(dashP3, 2, _rpR, "H1", text_color=color.silver, text_size=_szA)
+            table.cell(dashP3, 3, _rpR, l2_phaseCanon + "  " + f_mosBar(l2_waveProgress) + " " + str.tostring(math.round(l2_waveProgress)) + "%", text_color=color.yellow, text_size=_szA)
+            _rpR := _rpR + 1
+            table.cell(dashP3, 2, _rpR, "H4", text_color=color.silver, text_size=_szA)
+            table.cell(dashP3, 3, _rpR, l4_phaseCanon + "  " + f_mosBar(nz(se240_wp)) + " " + str.tostring(math.round(nz(se240_wp))) + "%", text_color=color.new(color.orange, 0), text_size=_szA)
+            _rpR := _rpR + 1
+
+f_renderDashP3()
+
 bool p3_highConvictionSetup =
      fractalConfidence > 68 and
      waveAgreement > 70 and
@@ -5403,12 +5507,7 @@ f_v72_run(int _dir3, int _dir4, array<float> _cf, array<int> _ci, array<bool> _c
         table.cell(mosRct, 0, 3, "Quality " + tqe_grade, text_color=#5ad1ff, text_size=size.small)
         table.cell(mosRct, 0, 4, _cmdOppClass, text_color=#9fb0d8, text_size=size.small)
 
-        // ── SECTION 8: TIMELINE (bottom center) ──
-        var table mosTl = table.new(position.bottom_center, 1, 4, bgcolor=color.new(#0b0b1c, 6), frame_color=color.new(#00e5ff, 25), frame_width=2, border_width=0)
-        table.cell(mosTl, 0, 0, "═══  TIMELINE  ═══", text_color=#00e5ff, text_size=size.small)
-        table.cell(mosTl, 0, 1, "Now: " + ie1a_currentPhase, text_color=color.white, text_size=size.small)
-        table.cell(mosTl, 0, 2, timeline_state + "   " + timeline_eta, text_color=#5ad1ff, text_size=size.small)
-        table.cell(mosTl, 0, 3, "ORIGIN > RETURN > EXPANSION > EXHAUSTION > REVERSAL", text_color=#7a86a8, text_size=size.tiny)
+        // (Timeline now covered by the restored P3 dashboard at bottom_center)
 
         // ── EXECUTION COPILOT (middle center) — the trader: what do I do ──
         var table mosExe = table.new(position.middle_center, 1, 9, bgcolor=color.new(#0b0b1c, 4), frame_color=color.new(#ffd000, 25), frame_width=2, border_width=0)
