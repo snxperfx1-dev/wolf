@@ -4353,7 +4353,7 @@ var box   l4ZoneBox     = na  // H4 zone (outermost — H4 price range)
 
 var label l2ZoneLbl     = na  // L2 label at zone top-left
 var label l0ZoneLbl     = na  // L0 label at origin bar
-var label l1ZoneLbl     = na  // L1 label at zone bottom-left
+var label l1ZoneLbl     = na  // L1 label at zone top-left (symmetric with L2/H4)
 var label l3ZoneLbl     = na  // L3 label at zone top-right
 var label m1ZoneLbl     = na  // M1 label at zone mid
 var label l4ZoneLbl     = na  // H4 label at zone top-left
@@ -4537,14 +4537,14 @@ if showTraceZones and barstate.islast and not na(l1_zoneHigh) and not na(l1_zone
              border_color=trace_L1_col, border_width=1,
              bgcolor=color.new(trace_L1_col, 92),
              border_style=line.style_dashed)
-        l1ZoneLbl := label.new(_l1R_near, l1_zoneLow, _l1txt,
+        l1ZoneLbl := label.new(_l1R_near, l1_zoneHigh, _l1txt,
              style=label.style_label_right,
              color=color.new(#10103a, 10),
              textcolor=trace_L1_col, size=size.small, textalign=text.align_left)
     else
         box.set_lefttop    (l1ZoneBox, _l1R_near, l1_zoneHigh)
         box.set_rightbottom(l1ZoneBox, _l1R_far,  l1_zoneLow)
-        label.set_xy  (l1ZoneLbl, _l1R_near, l1_zoneLow)
+        label.set_xy  (l1ZoneLbl, _l1R_near, l1_zoneHigh)
         label.set_text(l1ZoneLbl, _l1txt)
 
 // ════════════════════════════════════════════════════════════════════════════
