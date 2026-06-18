@@ -3743,8 +3743,9 @@ bool htfTrendIntact     = l2_dominantPhase == "Expansion" and l2_confidence > 45
 
 // ltfReversalForming: uses fam_l0 for L0 so canonical IE1A phases are recognised.
 bool ltfReversalForming =
-     (fam_l0 == 4 or fam_l0 == 5) or
-     (l3_dominantPhase == "M1 Absorption" or l3_dominantPhase == "M1 Liquidity")
+     ((fam_l0 == 4 or fam_l0 == 5) or
+     (l3_dominantPhase == "M1 Absorption" or l3_dominantPhase == "M1 Liquidity"))
+     and not (liqg_active and not (liqg_objArrival and liqg_trueCHoCH))
 
 string fusionInterpretation =
      htfTrendIntact and not ltfReversalForming  ? "HTF Intact — LTF Expansion Aligned"        :
