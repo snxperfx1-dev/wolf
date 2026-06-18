@@ -331,6 +331,15 @@ f_zoneRange() => [ta.highest(high, 20), ta.lowest(low, 20)]
 [l3_zoneHigh, l3_zoneLow] = request.security(syminfo.tickerid, "3",
      f_zoneRange(), lookahead=barmerge.lookahead_off)
 
+// M1 ("1") and H4 ("240") price ranges — fixed timeframes (match se1 / se240
+// structure engines) so their trace bands always represent M1 and H4 regardless
+// of the tf1/tf2 bias inputs.
+[m1_zoneHigh, m1_zoneLow] = request.security(syminfo.tickerid, "1",
+     f_zoneRange(), lookahead=barmerge.lookahead_off)
+
+[l4_zoneHigh, l4_zoneLow] = request.security(syminfo.tickerid, "240",
+     f_zoneRange(), lookahead=barmerge.lookahead_off)
+
 var int htfBias1  = 0
 var int htfBias2  = 0
 if expScr_tf1 > 60 and dir_tf1 != 0
@@ -388,7 +397,7 @@ if not na(swPivL)
 bool bullBOS = not na(prevSwingHigh) and close > prevSwingHigh
 bool bearBOS = not na(prevSwingLow)  and close < prevSwingLow
 
-// Buffered CHoCH used to flip wave DIRECTION (displayWaveDir + Engine 1A spawn).
+// Buffered CHoCH used to flip wave DIRECTION (per-TF wave dirs + Engine 1A spawn).
 // Requires close to CLEAR the swing by chochBufferATR*ATR — filters minor
 // counter-swings in choppy ranges that were whipsawing the wave direction.
 chochBufferATR = input.float(0.75, "Direction CHoCH Buffer (ATR)", group=GRP_STRUCT, minval=0.0, maxval=3.0, step=0.05)
@@ -827,6 +836,17 @@ string l1_dirLabel = l1_dir == 1 ? "Bullish Wave" : l1_dir == -1 ? "Bearish Wave
 string l2_dirLabel = l2_dir == 1 ? "Bullish Wave" : l2_dir == -1 ? "Bearish Wave" : "Undefined"
 string l4_dirLabel = l4_dir == 1 ? "Bullish Wave" : l4_dir == -1 ? "Bearish Wave" : "Undefined"
 
+// ── M1 & H4 display aliases (parity with L0/L1/L2/L3 targetWave/currentPhase) ─
+// M1 and H4 do not flow through the L1/L2/L3 belief classifier, so expose the
+// same trio (targetWave / currentPhase / dominance) directly from their own
+// fixed-tf engine outputs. Direction is the origin-based per-TF direction.
+string m1_targetWave   = m1_dirLabel
+string l4_targetWave   = l4_dirLabel
+string m1_currentPhase = m1_phaseCanon
+string l4_currentPhase = l4_phaseCanon
+float  m1_dominance    = math.min(nz(se1_mf)   * 0.60 + nz(se1_wp)   * 0.40, 100.0)
+float  l4_dominance    = math.min(nz(se240_mf) * 0.60 + nz(se240_wp) * 0.40, 100.0)
+
 // ── FRACTAL STACK ALIGNMENT (v90) ────────────────────────────────────────────
 // How unified the five FIXED structure layers are. Feeds the scores
 // (buyScore/sellScore), the V72 consensus, and trade-quality grade so the
@@ -953,17 +973,31 @@ var int   lastSpawnDir      = 0
 var bool  recursiveComplete = false
 
 // ─────────────────────────────────────────────────────────────────────────────
-// displayWaveDir — STRUCTURAL "wave being created" (Structure = Trigger; RC4)
-// Driven ONLY by protected-swing breaks (bullBOS/bearBOS). No momentum/belief/
-// physics, so it complies with the lifecycle hierarchy while staying responsive:
-// when a wave's structure breaks the other way, the DISPLAYED emerging wave flips
-// immediately — even before Engine 1A `direction` flips on an elite impulse.
-// `direction` (Engine 1A lifecycle owner) is left untouched; this drives DISPLAY.
+// PER-TIMEFRAME DISPLAY WAVE DIRECTION (v91 — no shared global)
+// There is deliberately NO single global wave-direction master anymore. Each timeframe
+// exposes its OWN origin-based wave direction (computed by f_waveDirByOrigin from
+// live price vs that timeframe's origin), where:
+//     +1 = price ABOVE that timeframe's wave origin -> Bullish Wave
+//     -1 = price BELOW that timeframe's wave origin -> Bearish Wave
+//      (price == origin -> previous direction preserved inside f_waveDirByOrigin)
+// Every panel, label, narrative and downstream engine consumes the variable for
+// ITS OWN timeframe. The execution/command engine is by design an M5 (L0) engine,
+// so it explicitly references displayWaveDir_M5 (= l0_dir) — an EXPLICIT timeframe
+// variable, never a hidden global that another timeframe could inherit.
 // ─────────────────────────────────────────────────────────────────────────────
-// v90: display wave direction follows the FIXED M5 (L0) structure engine.
-var int displayWaveDir = 0
-displayWaveDir := l0_dir != 0 ? l0_dir : displayWaveDir
-string displayWaveDirStr = displayWaveDir == 1 ? "Bullish Wave" : displayWaveDir == -1 ? "Bearish Wave" : "Neutral"
+int displayWaveDir_M1  = m1_dir   // M1  — fixed "1"   structure
+int displayWaveDir_M3  = l3_dir   // M3  — fixed "3"   structure
+int displayWaveDir_M5  = l0_dir   // M5  — fixed "5"   structure (execution TF)
+int displayWaveDir_M15 = l1_dir   // M15 — fixed "15"  structure
+int displayWaveDir_H1  = l2_dir   // H1  — fixed "60"  structure
+int displayWaveDir_H4  = l4_dir   // H4  — fixed "240" structure
+
+string M1WaveLabel  = displayWaveDir_M1  == 1 ? "Bullish Wave" : displayWaveDir_M1  == -1 ? "Bearish Wave" : "Neutral"
+string M3WaveLabel  = displayWaveDir_M3  == 1 ? "Bullish Wave" : displayWaveDir_M3  == -1 ? "Bearish Wave" : "Neutral"
+string M5WaveLabel  = displayWaveDir_M5  == 1 ? "Bullish Wave" : displayWaveDir_M5  == -1 ? "Bearish Wave" : "Neutral"
+string M15WaveLabel = displayWaveDir_M15 == 1 ? "Bullish Wave" : displayWaveDir_M15 == -1 ? "Bearish Wave" : "Neutral"
+string H1WaveLabel  = displayWaveDir_H1  == 1 ? "Bullish Wave" : displayWaveDir_H1  == -1 ? "Bearish Wave" : "Neutral"
+string H4WaveLabel  = displayWaveDir_H4  == 1 ? "Bullish Wave" : displayWaveDir_H4  == -1 ? "Bearish Wave" : "Neutral"
 
 float _g_highestAB = ta.highest(high, acceptBars)
 float _g_lowestAB  = ta.lowest (low,  acceptBars)
@@ -4305,18 +4339,24 @@ showOriginPins  = input.bool(true,  "Show Origin Anchor Pins",                 g
 color trace_L2_col = color.yellow             // L2 HTF
 color trace_L0_col = color.lime               // L0 Primary
 color trace_L1_col = color.aqua               // L1 Child
-color trace_L3_col = color.new(#c084fc, 0)    // L3 Grandchild (M1)
+color trace_L3_col = color.new(#c084fc, 0)    // L3 Grandchild (M3)
+color trace_H4_col = color.orange             // H4 — highest context
+color trace_M1_col = color.new(#9aa4b2, 0)    // M1 — finest micro
 
 // ── Persistent drawing objects ───────────────────────────────────────────────
 var box   l2ZoneBox     = na  // L2 HTF zone (outermost — tf2 price range)
 var box   l0ZoneBox     = na  // L0 Primary zone (origin → now)
 var box   l1ZoneBox     = na  // L1 Child zone (tf1 price range)
-var box   l3ZoneBox     = na  // L3 Grandchild zone (M1 price range)
+var box   l3ZoneBox     = na  // L3 Grandchild zone (M3 price range)
+var box   m1ZoneBox     = na  // M1 zone (innermost — M1 price range)
+var box   l4ZoneBox     = na  // H4 zone (outermost — H4 price range)
 
 var label l2ZoneLbl     = na  // L2 label at zone top-left
 var label l0ZoneLbl     = na  // L0 label at origin bar
 var label l1ZoneLbl     = na  // L1 label at zone bottom-left
 var label l3ZoneLbl     = na  // L3 label at zone top-right
+var label m1ZoneLbl     = na  // M1 label at zone mid
+var label l4ZoneLbl     = na  // H4 label at zone top-left
 var label l0OriginPin   = na  // L0 origin anchor pin
 var label dominantLabel = na  // Dominant wave tag on dominant structure
 
@@ -4348,6 +4388,10 @@ int _l1R_far  = bar_index + 12   // L1 Child — middle
 int _l1R_near = bar_index + 3
 int _l3R_far  = bar_index + 7    // L3 Grandchild — narrowest
 int _l3R_near = bar_index + 3
+int _h4R_far  = bar_index + 24   // H4 — outermost (highest context)
+int _h4R_near = bar_index + 3
+int _m1R_far  = bar_index + 5    // M1 — innermost (finest micro)
+int _m1R_near = bar_index + 3
 
 // ════════════════════════════════════════════════════════════════════════════
 // PHASE 1-A  L2 HTF TRACEABILITY
@@ -4358,6 +4402,30 @@ int _l3R_near = bar_index + 3
 // Label text mirrors the dashboard "L2 (HTF) Progress" row exactly.
 // Origin pin: at the left edge of the zone (oldest bar in the 20-bar tf2 window)
 // ════════════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════════════════
+// PHASE 1-AA  H4 CONTEXT TRACEABILITY
+// Outermost band at the real H4 ("240") price level. Direction is H4's OWN
+// origin-based wave direction (l4_dir); phase is the H4 fixed-tf lifecycle.
+// ════════════════════════════════════════════════════════════════════════════
+if showTraceZones and barstate.islast and not na(l4_zoneHigh) and not na(l4_zoneLow)
+
+    string _l4txt = "H4 · " + l4_targetWave + " · " + l4_currentPhase + " · D" + str.tostring(math.round(l4_dominance)) + "%"
+
+    if na(l4ZoneBox)
+        l4ZoneBox := box.new(_h4R_near, l4_zoneHigh, _h4R_far, l4_zoneLow,
+             border_color=trace_H4_col, border_width=2,
+             bgcolor=color.new(trace_H4_col, 92),
+             border_style=line.style_solid)
+        l4ZoneLbl := label.new(_h4R_near, l4_zoneHigh, _l4txt,
+             style=label.style_label_right,
+             color=color.new(#10103a, 10),
+             textcolor=trace_H4_col, size=size.small, textalign=text.align_left)
+    else
+        box.set_lefttop    (l4ZoneBox, _h4R_near, l4_zoneHigh)
+        box.set_rightbottom(l4ZoneBox, _h4R_far,  l4_zoneLow)
+        label.set_xy  (l4ZoneLbl, _h4R_near, l4_zoneHigh)
+        label.set_text(l4ZoneLbl, _l4txt)
+
 // ── PHASE 1-A  L2 HTF TRACEABILITY ──────────────────────────────────────────
 // Drawn as a narrow vertical band right of current bar at the REAL tf2 price level.
 // Label text mirrors the dashboard "L2 (HTF) Progress" row exactly.
@@ -4510,6 +4578,30 @@ if showTraceZones and barstate.islast and not na(l3_zoneHigh) and not na(l3_zone
         box.set_rightbottom(l3ZoneBox, _l3R_far,  l3_zoneLow)
         label.set_xy  (l3ZoneLbl, _l3R_far, f_mid(l3_zoneHigh, l3_zoneLow))
         label.set_text(l3ZoneLbl, _l3txt)
+
+// ════════════════════════════════════════════════════════════════════════════
+// PHASE 1-G  M1 MICRO TRACEABILITY
+// Innermost narrow band at the real M1 ("1") price level. Direction is M1's OWN
+// origin-based wave direction (m1_dir); phase is the M1 fixed-tf lifecycle.
+// ════════════════════════════════════════════════════════════════════════════
+if showTraceZones and barstate.islast and not na(m1_zoneHigh) and not na(m1_zoneLow)
+
+    string _m1txt = "M1 · " + m1_targetWave + " · " + m1_currentPhase + " · D" + str.tostring(math.round(m1_dominance)) + "%"
+
+    if na(m1ZoneBox)
+        m1ZoneBox := box.new(_m1R_near, m1_zoneHigh, _m1R_far, m1_zoneLow,
+             border_color=color.new(trace_M1_col, 20), border_width=1,
+             bgcolor=color.new(trace_M1_col, 92),
+             border_style=line.style_dotted)
+        m1ZoneLbl := label.new(_m1R_far, f_mid(m1_zoneHigh, m1_zoneLow), _m1txt,
+             style=label.style_label_left,
+             color=color.new(#10103a, 20),
+             textcolor=color.new(trace_M1_col, 10), size=size.tiny, textalign=text.align_left)
+    else
+        box.set_lefttop    (m1ZoneBox, _m1R_near, m1_zoneHigh)
+        box.set_rightbottom(m1ZoneBox, _m1R_far,  m1_zoneLow)
+        label.set_xy  (m1ZoneLbl, _m1R_far, f_mid(m1_zoneHigh, m1_zoneLow))
+        label.set_text(m1ZoneLbl, _m1txt)
 
 // ════════════════════════════════════════════════════════════════════════════
 // PHASE 1-F  AUTOMATIC LABEL STACKING (Section 5 — Visual Clarity Engine)
@@ -5118,12 +5210,12 @@ f_v72_run(int _dir3, int _dir4, array<float> _cf, array<int> _ci, array<bool> _c
     int   mce_tf2_direction = l2_dir   // H1  FIXED structure (v90: was dir_tf2 belief)
     int   mce_tf3_direction = nz(_dir3)
     int   mce_tf4_direction = nz(_dir4)
-    int _mce_agreeAll  = (mce_tf1_direction == displayWaveDir and displayWaveDir != 0 ? 1 : 0) + (mce_tf2_direction == displayWaveDir and displayWaveDir != 0 ? 1 : 0) + (mce_tf3_direction == displayWaveDir and displayWaveDir != 0 ? 1 : 0) + (mce_tf4_direction == displayWaveDir and displayWaveDir != 0 ? 1 : 0)
-    int _mce_agreeHtf  = (mce_tf3_direction == displayWaveDir and displayWaveDir != 0 ? 1 : 0) + (mce_tf4_direction == displayWaveDir and displayWaveDir != 0 ? 1 : 0)
-    int _mce_agreeExec = (mce_tf1_direction == displayWaveDir and displayWaveDir != 0 ? 1 : 0) + (mce_tf2_direction == displayWaveDir and displayWaveDir != 0 ? 1 : 0)
-    float mce_alignmentScore     = displayWaveDir == 0 ? 0.0 : _mce_agreeAll  / 4.0 * 100.0
-    float mce_htfAlignmentScore  = displayWaveDir == 0 ? 0.0 : math.min((_mce_agreeHtf / 2.0 * 100.0) * 0.55 + fractalCtxScore * 0.45, 100.0)
-    float mce_execAlignmentScore = displayWaveDir == 0 ? 0.0 : _mce_agreeExec / 2.0 * 100.0
+    int _mce_agreeAll  = (mce_tf1_direction == displayWaveDir_M5 and displayWaveDir_M5 != 0 ? 1 : 0) + (mce_tf2_direction == displayWaveDir_M5 and displayWaveDir_M5 != 0 ? 1 : 0) + (mce_tf3_direction == displayWaveDir_M5 and displayWaveDir_M5 != 0 ? 1 : 0) + (mce_tf4_direction == displayWaveDir_M5 and displayWaveDir_M5 != 0 ? 1 : 0)
+    int _mce_agreeHtf  = (mce_tf3_direction == displayWaveDir_M5 and displayWaveDir_M5 != 0 ? 1 : 0) + (mce_tf4_direction == displayWaveDir_M5 and displayWaveDir_M5 != 0 ? 1 : 0)
+    int _mce_agreeExec = (mce_tf1_direction == displayWaveDir_M5 and displayWaveDir_M5 != 0 ? 1 : 0) + (mce_tf2_direction == displayWaveDir_M5 and displayWaveDir_M5 != 0 ? 1 : 0)
+    float mce_alignmentScore     = displayWaveDir_M5 == 0 ? 0.0 : _mce_agreeAll  / 4.0 * 100.0
+    float mce_htfAlignmentScore  = displayWaveDir_M5 == 0 ? 0.0 : math.min((_mce_agreeHtf / 2.0 * 100.0) * 0.55 + fractalCtxScore * 0.45, 100.0)
+    float mce_execAlignmentScore = displayWaveDir_M5 == 0 ? 0.0 : _mce_agreeExec / 2.0 * 100.0
     int mce_lifecycleProgress =
          ie1a_currentPhase == "Point 4 Origin"           ? 5  :
          ie1a_currentPhase == "Expansion"                ? 20 :
@@ -5140,8 +5232,8 @@ f_v72_run(int _dir3, int _dir4, array<float> _cf, array<int> _ci, array<bool> _c
          ie1a_currentPhase == "Demand Return"            ? 90 :
          ie1a_currentPhase == "Supply Return"            ? 90 : 0
     string mce_htfAlignmentSummary =
-         mce_htfAlignmentScore >= 80 and displayWaveDir == 1  ? "HTF Bullish Continuation" :
-         mce_htfAlignmentScore >= 80 and displayWaveDir == -1 ? "HTF Bearish Continuation" :
+         mce_htfAlignmentScore >= 80 and displayWaveDir_M5 == 1  ? "HTF Bullish Continuation" :
+         mce_htfAlignmentScore >= 80 and displayWaveDir_M5 == -1 ? "HTF Bearish Continuation" :
          mce_htfAlignmentScore >= 60 and rot_transferProbability < 40 ? "HTF Trend Intact" :
          mce_htfAlignmentScore >= 50 and rot_transferProbability >= 60 ? "HTF Rotation Developing" :
          mce_htfAlignmentScore < 40 ? "HTF Contested — No Clear Bias" : "HTF Developing"
@@ -5156,17 +5248,17 @@ f_v72_run(int _dir3, int _dir4, array<float> _cf, array<int> _ci, array<bool> _c
     bool _ne_phasePullback = ie1a_currentPhase == "Retracement" or ie1a_currentPhase == "Retracement Pre-Convexity" or ie1a_currentPhase == "Retracement Induction" or ie1a_currentPhase == "Retracement Liquidity"
     bool _ne_phaseDemandReturn = ie1a_currentPhase == "Demand Return"
     bool _ne_phaseSupplyReturn = ie1a_currentPhase == "Supply Return"
-    float _ne_htfScore = mce_htfAlignmentScore > 0 ? mce_htfAlignmentScore : (htfAlign == displayWaveDir and displayWaveDir != 0 ? 70.0 : 0.0)
+    float _ne_htfScore = mce_htfAlignmentScore > 0 ? mce_htfAlignmentScore : (htfAlign == displayWaveDir_M5 and displayWaveDir_M5 != 0 ? 70.0 : 0.0)
     string ne_dominantNarrative =
-         displayWaveDir == 0 ? "No Clear Narrative" :
-         displayWaveDir == 1  and _ne_phaseExpBull and rot_transferProbability < 40 ? "Bullish Continuation" :
-         displayWaveDir == -1 and _ne_phaseExpBear and rot_transferProbability < 40 ? "Bearish Continuation" :
-         displayWaveDir == 1  and (_ne_phasePullback or _ne_phaseDemandReturn) ? "Bullish Pullback" :
-         displayWaveDir == -1 and (_ne_phasePullback or _ne_phaseSupplyReturn) ? "Bearish Pullback" :
-         displayWaveDir == 1  and (rot_transferProbability >= 55 or ie1a_currentPhase == "Absorption") ? "Bullish Reversal Developing" :
-         displayWaveDir == -1 and (rot_transferProbability >= 55 or ie1a_currentPhase == "Absorption") ? "Bearish Reversal Developing" :
-         displayWaveDir == 1  ? "Bullish Developing" :
-         displayWaveDir == -1 ? "Bearish Developing" : "No Clear Narrative"
+         displayWaveDir_M5 == 0 ? "No Clear Narrative" :
+         displayWaveDir_M5 == 1  and _ne_phaseExpBull and rot_transferProbability < 40 ? "Bullish Continuation" :
+         displayWaveDir_M5 == -1 and _ne_phaseExpBear and rot_transferProbability < 40 ? "Bearish Continuation" :
+         displayWaveDir_M5 == 1  and (_ne_phasePullback or _ne_phaseDemandReturn) ? "Bullish Pullback" :
+         displayWaveDir_M5 == -1 and (_ne_phasePullback or _ne_phaseSupplyReturn) ? "Bearish Pullback" :
+         displayWaveDir_M5 == 1  and (rot_transferProbability >= 55 or ie1a_currentPhase == "Absorption") ? "Bullish Reversal Developing" :
+         displayWaveDir_M5 == -1 and (rot_transferProbability >= 55 or ie1a_currentPhase == "Absorption") ? "Bearish Reversal Developing" :
+         displayWaveDir_M5 == 1  ? "Bullish Developing" :
+         displayWaveDir_M5 == -1 ? "Bearish Developing" : "No Clear Narrative"
     float ne_narrativeStrength = math.min(mce_alignmentScore * 0.40 + rot_controlStability * 0.30 + (re_resolutionState == "RESOLVED" ? 30.0 : re_resolutionState == "PARTIALLY RESOLVED" ? 15.0 : 0.0), 100.0)
 
     // ── V72.5 Invalidation Engine (C9) ───────────────────────────────────────
@@ -5224,10 +5316,10 @@ f_v72_run(int _dir3, int _dir4, array<float> _cf, array<int> _ci, array<bool> _c
 
     // ── V72.8 Decision Output Engine (C1, C6) ────────────────────────────────
     string doe_bias =
-         displayWaveDir == 1  and mce_htfAlignmentScore >= 75 and rot_controlStability >= 65 ? "Strong Bullish" :
-         displayWaveDir == 1  ? "Bullish" :
-         displayWaveDir == -1 and mce_htfAlignmentScore >= 75 and rot_controlStability >= 65 ? "Strong Bearish" :
-         displayWaveDir == -1 ? "Bearish" : "Neutral"
+         displayWaveDir_M5 == 1  and mce_htfAlignmentScore >= 75 and rot_controlStability >= 65 ? "Strong Bullish" :
+         displayWaveDir_M5 == 1  ? "Bullish" :
+         displayWaveDir_M5 == -1 and mce_htfAlignmentScore >= 75 and rot_controlStability >= 65 ? "Strong Bearish" :
+         displayWaveDir_M5 == -1 ? "Bearish" : "Neutral"
     string doe_action =
          inv_invalidated ? "No Trade" :
          not erf_entryGate ? "Wait" :
@@ -5250,10 +5342,10 @@ f_v72_run(int _dir3, int _dir4, array<float> _cf, array<int> _ci, array<bool> _c
     string doe_entryTrigger = frz_inProximity ? "Limit" : (ie1a_currentPhase == "Demand Return" or ie1a_currentPhase == "Supply Return") ? "LimitOnRetest" : "Market"
 
     // ── V72.8b OPPORTUNITY PROGRESS ENGINE (Phase 1) ─────────────────────────
-    // Direction = displayWaveDir (single source). Progress SYNTHESIZES engine
+    // Direction = displayWaveDir_M5 (single source). Progress SYNTHESIZES engine
     // states; it never decides direction. Hard vetoes (no direction / invalidated)
     // force Stand Down; ERF/HTF/phase/MCE are graded contributors, not vetoes.
-    float _opStruct    = displayWaveDir == 0 ? 0.0 : (direction == displayWaveDir ? 100.0 : 70.0)
+    float _opStruct    = displayWaveDir_M5 == 0 ? 0.0 : (direction == displayWaveDir_M5 ? 100.0 : 70.0)
     float _opLifecycle =
          ie1a_currentPhase == "Demand Return" or ie1a_currentPhase == "Supply Return" ? 100.0 :
          ie1a_currentPhase == "Absorption" or ie1a_currentPhase == "Retracement" or ie1a_currentPhase == "Retracement Pre-Convexity" or ie1a_currentPhase == "Retracement Induction" or ie1a_currentPhase == "Retracement Liquidity" ? 70.0 :
@@ -5264,11 +5356,11 @@ f_v72_run(int _dir3, int _dir4, array<float> _cf, array<int> _ci, array<bool> _c
     float _opReturn     = na(frz_distanceToZone) ? (frz_inProximity ? 100.0 : 0.0) : math.max(0.0, 100.0 - frz_distanceToZone * 40.0)
     float _opHtf        = mce_htfAlignmentScore
     float _opDisplace   = math.max(re_recursiveCompletionScore, ede_dissipationProgress)
-    float _opConfluence = (frz_attractorConvergence ? 50.0 : 0.0) + ((frz_inProximity and frz_bestZoneDir == displayWaveDir) ? 50.0 : 0.0)
+    float _opConfluence = (frz_attractorConvergence ? 50.0 : 0.0) + ((frz_inProximity and frz_bestZoneDir == displayWaveDir_M5) ? 50.0 : 0.0)
     float oppProgressRaw = _opStruct * 0.25 + _opLifecycle * 0.15 + _opRotation * 0.15 + _opReturn * 0.15 + _opHtf * 0.10 + _opDisplace * 0.10 + _opConfluence * 0.10
-    bool  oppVeto     = displayWaveDir == 0 or inv_invalidated
+    bool  oppVeto     = displayWaveDir_M5 == 0 or inv_invalidated
     float oppProgress = oppVeto ? 0.0 : oppProgressRaw
-    bool  _opInZone   = frz_inProximity and frz_bestZoneDir == displayWaveDir
+    bool  _opInZone   = frz_inProximity and frz_bestZoneDir == displayWaveDir_M5
     string oppState =
          oppVeto                                ? "STAND DOWN" :
          oppProgress >= 95 and _opInZone        ? "TRADE ACTIVE" :
@@ -5276,10 +5368,10 @@ f_v72_run(int _dir3, int _dir4, array<float> _cf, array<int> _ci, array<bool> _c
          oppProgress >= 60                      ? "OPPORTUNITY CONFIRMING" :
          oppProgress >= 20                      ? "OPPORTUNITY FORMING" : "STAND DOWN"
 
-    // Synthesized intelligence narrative (consumes displayWaveDir + lifecycle + rotation)
-    string _cmdDirWord = displayWaveDir == 1 ? "Bullish" : displayWaveDir == -1 ? "Bearish" : "Neutral"
+    // Synthesized intelligence narrative (consumes displayWaveDir_M5 + lifecycle + rotation)
+    string _cmdDirWord = displayWaveDir_M5 == 1 ? "Bullish" : displayWaveDir_M5 == -1 ? "Bearish" : "Neutral"
     string cmd_narrative =
-         displayWaveDir == 0 ? "No directional thesis" :
+         displayWaveDir_M5 == 0 ? "No directional thesis" :
          inv_invalidated ? _cmdDirWord + " thesis invalidated" :
          (ie1a_currentPhase == "Demand Return" or ie1a_currentPhase == "Supply Return") ? _cmdDirWord + " return-to-zone — execution window" :
          rot_transferProbability >= 55 or ie1a_currentPhase == "Absorption" ? _cmdDirWord + " reversal developing" :
@@ -5406,8 +5498,8 @@ f_v72_run(int _dir3, int _dir4, array<float> _cf, array<int> _ci, array<bool> _c
     // ── V72.11.5 TARGET PROJECTION LAYER (TPL) — single live destination ──────
     // Answers "where is price most likely trying to go right now?" by ranking
     // FRZ / EAE attractor / FU imbalance candidates. Direction is the fixed M5
-    // structure (displayWaveDir), so the destination is timeframe-independent.
-    int   _tpl_bias = displayWaveDir != 0 ? displayWaveDir : fractalStackDir
+    // structure (displayWaveDir_M5), so the destination is timeframe-independent.
+    int   _tpl_bias = displayWaveDir_M5 != 0 ? displayWaveDir_M5 : fractalStackDir
     // Candidates
     float tpl_frzTarget       = _tpl_bias == 1 ? frz_bestZoneTop : _tpl_bias == -1 ? frz_bestZoneBot : na
     float tpl_attractorTarget = eae_primaryAttractorPrice
@@ -5515,7 +5607,7 @@ f_v72_run(int _dir3, int _dir4, array<float> _cf, array<int> _ci, array<bool> _c
         table.cell(cmd, 0, 0, "V72 COMMAND", text_color=color.white, bgcolor=color.new(#0a0a30, 0), text_size=_szCmd)
         table.cell(cmd, 1, 0, oppState, text_color=color.black, bgcolor=(oppState == "TRADE ACTIVE" ? #00ff88 : oppState == "PREPARE TO EXECUTE" ? color.lime : oppState == "OPPORTUNITY CONFIRMING" ? color.yellow : oppState == "OPPORTUNITY FORMING" ? color.orange : color.gray), text_size=_szCmd)
         table.cell(cmd, 0, 1, "Bias", text_color=#00ffcc, text_size=_szCmd)
-        table.cell(cmd, 1, 1, doe_bias, text_color=(displayWaveDir == 1 ? color.lime : displayWaveDir == -1 ? color.red : color.gray), text_size=_szCmd)
+        table.cell(cmd, 1, 1, doe_bias, text_color=(displayWaveDir_M5 == 1 ? color.lime : displayWaveDir_M5 == -1 ? color.red : color.gray), text_size=_szCmd)
         table.cell(cmd, 0, 2, "Narrative", text_color=#00ffcc, text_size=_szCmd)
         table.cell(cmd, 1, 2, cmd_narrative, text_color=color.white, text_size=_szCmd)
         table.cell(cmd, 0, 3, "Opportunity", text_color=#00ffcc, text_size=_szCmd)
