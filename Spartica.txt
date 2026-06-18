@@ -1,5 +1,5 @@
 //@version=6
-indicator("Letra", overlay=true, max_lines_count=500, max_labels_count=500, max_boxes_count=500, max_polylines_count=100)
+indicator("Letra 4", overlay=true, max_lines_count=500, max_labels_count=500, max_boxes_count=500, max_polylines_count=100)
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SECTION 1 — INPUT GROUPS
@@ -1730,8 +1730,16 @@ string liqg_title =
 // Retire on genuine completion (arrival + true CHoCH), invalidation, or new wave
 if liqg_active and ((liqg_objArrival and liqg_trueCHoCH) or ie1a_currentPhase == "Expansion" or ie1a_currentPhase == "Point 4 Origin")
     liqg_active := false
+// ABSORPTION GATE (9.8): the visible phase may only read "Absorption" after a genuine
+// objective arrival + true CHoCH for THIS wave. Latch unlocks on arrival+CHoCH and
+// resets when a new wave is born — preventing premature absorption regardless of BOS.
+var bool liqg_absorbUnlocked = false
+if liqg_objArrival and liqg_trueCHoCH
+    liqg_absorbUnlocked := true
+if ie1a_currentPhase == "Point 4 Origin"
+    liqg_absorbUnlocked := false
 // SINGLE phase-string authority — consumed by every label / panel / narrative below
-string currentDisplayPhase = liqg_active ? (liqg_title + (liqg_subPhase != "" ? " • " + liqg_subPhase : "")) : ie1a_currentPhase
+string currentDisplayPhase = liqg_active ? (liqg_title + (liqg_subPhase != "" ? " • " + liqg_subPhase : "")) : (ie1a_currentPhase == "Absorption" and not liqg_absorbUnlocked) ? (displayWaveDir_M5 == -1 ? "Pre-New Low Liquidation Wave" : "Pre-New High Liquidation Wave") : ie1a_currentPhase
 string _cdpDir   = displayWaveDir_M5 == 1 ? "Bullish" : displayWaveDir_M5 == -1 ? "Bearish" : "Neutral"
 string liqg_arrTx = liqg_objArrival ? "Yes" : (not na(liqg_distPct) and liqg_distPct < 12) ? "Imminent" : "No"
 // 3-D AGREEMENT → dynamic confidence / integrity (agreement quality, not score thresholds).
