@@ -1731,6 +1731,11 @@ bool  _cdpMAgree = displayWaveDir_M5 != 0 and (displayWaveDir_M5 == 1 ? velocity
 bool  _cdpPAgree = re_resolutionState != "RESOLVED" and ede_dissipationProgress < 80
 float phaseConfidence = (_cdpSAgree ? 34.0 : 0.0) + (_cdpMAgree ? 33.0 : 0.0) + (_cdpPAgree ? 33.0 : 0.0)
 float phaseIntegrity  = math.max(0.0, math.min(100.0, phaseConfidence * 0.6 + (100.0 - math.min(ede_dissipationProgress, 100.0)) * 0.4))
+// REAL PHASE PROGRESS (dynamic, continuous, never time/bar based): distance consumed
+// toward the M5 objective + energy dissipated + convexity maturity. During a
+// liquidation wave it tracks the objective-completion distance directly.
+float _ppDistConsumed = (not na(se5_tgt) and not na(se5_inv)) ? math.min(100.0, math.abs(close - se5_inv) / math.max(math.abs(se5_tgt - se5_inv), 1e-10) * 100.0) : na
+float phaseProgress = liqg_active and not na(liqg_distPct) ? (100.0 - liqg_distPct) : na(_ppDistConsumed) ? math.min(100.0, ede_dissipationProgress * 0.5 + convexityMaturity * 0.5) : math.min(100.0, _ppDistConsumed * 0.5 + convexityMaturity * 0.3 + ede_dissipationProgress * 0.2)
 // Full chart-label projection (Direction · Phase [· Substate] · Target · Distance · Arrival · Confidence · Integrity)
 string liqg_readout = _cdpDir + " · " + currentDisplayPhase + (liqg_active ? ("\nTarget " + (na(liqg_target) ? "forming" : str.tostring(math.round_to_mintick(liqg_target))) + "   Dist " + (na(liqg_distPct) ? "–" : str.tostring(math.round(liqg_distPct)) + "%") + "   Arrival " + liqg_arrTx) : "") + "   ·   Conf " + str.tostring(math.round(phaseConfidence)) + "%  Integ " + str.tostring(math.round(phaseIntegrity)) + "%"
 
@@ -4061,7 +4066,7 @@ f_renderDashP3() =>
             table.cell(dashP3, 3, _rpR, l3_phaseCanon + "  " + f_mosBar(l3_waveProgress) + " " + str.tostring(math.round(l3_waveProgress)) + "%", text_color=color.new(#c084fc, 0), text_size=_szA)
             _rpR := _rpR + 1
             table.cell(dashP3, 2, _rpR, "M5", text_color=color.silver, text_size=_szA)
-            float _m5Prog = liqg_active and not na(liqg_distPct) ? 100.0 - liqg_distPct : l0_waveProgress
+            float _m5Prog = phaseProgress
             table.cell(dashP3, 3, _rpR, currentDisplayPhase + "  " + f_mosBar(_m5Prog) + " " + str.tostring(math.round(_m5Prog)) + "%", text_color=color.lime, text_size=_szA)
             _rpR := _rpR + 1
             table.cell(dashP3, 2, _rpR, "M15", text_color=color.silver, text_size=_szA)
