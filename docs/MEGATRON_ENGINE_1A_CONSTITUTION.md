@@ -554,3 +554,377 @@ conditions, persistence laws, and the **structure-evidence** outputs they emit �
 strictly as evidence, never as phase.
 
 *Awaiting ratification of Part 1 before drafting Part 2.*
+
+
+
+---
+
+# PART 2 — STRUCTURAL ONTOLOGY
+
+*The skeleton. This Part defines the **persistent geometric objects** the market
+leaves behind as it expresses energy, the laws governing their creation,
+persistence, inheritance, and destruction, and the **structure-evidence** they
+emit. Every entity here is grounded in Part 1 §1.5 (Structure) and obeys Part 1
+§1.4 (evidence is descriptive, never a phase) and §1.15 (the invariants).*
+
+> **Binding restatement.** Structure produces **evidence only**. No object in
+> this Part, and no event involving it, may assign a lifecycle phase. A break of
+> structure is not "Pre-Convexity"; it is *evidence* that the other two
+> dimensions may corroborate (Part 7). This Part is forbidden from naming any of
+> the fourteen canonical phases as an output.
+
+---
+
+## 2.0 — Purpose and Scope of Part 2
+
+Part 1 declared *that* structure exists and is the skeleton. Part 2 specifies
+*which bones exist*, *how each is created*, *how long it lives*, *what kills it*,
+and *what evidence it contributes*. It establishes the structural half of the
+input contract that Engine 1A's confluence gate (Part 7) will consume.
+
+Scope of Part 2:
+
+- The **persistent structural objects** and their precise definitions.
+- The **creation law** for each object (what brings it into existence).
+- The **persistence law** for each object (what keeps it alive; cross-ref Part
+  5 for the general persistence machinery).
+- The **destruction/replacement law** for each object.
+- The **inheritance law** (how lower-degree structure relates to the M5
+  authority's structure; cross-ref Part 11).
+- The **structure-evidence outputs** — the only things Structure is permitted to
+  expose to Engine 1A.
+
+Out of scope (delegated):
+
+- The generic create/persist/destroy/inherit *machinery* → Part 5.
+- Momentum and physics evidence → Parts 3, 4.
+- How structure-evidence combines with the other dimensions → Part 7.
+- Recursive-degree restrictions → Part 11; timeframe span → Part 12.
+
+---
+
+## 2.1 — The Nature of a Structural Object
+
+**Definition (Structural Object).** A *structural object* is a **named,
+persistent level or level-pair** that records a specific act of control —
+establishment, defence, break, or completion — within a wave. Each object has:
+
+- an **identity** (which of the named objects it is),
+- an **anchor** (the price level(s) and the bar at which it was fixed),
+- a **lifespan** (from creation to destruction/replacement),
+- an **owner wave** (the wave whose lifecycle it belongs to),
+- a **directional polarity** (whether it serves the bullish or bearish reading).
+
+Structural objects are **discrete and few**. The skeleton is intentionally
+sparse: a small set of high-meaning levels, not a cloud of pivots. Pivots and
+swings in the raw sense are *raw material*; a structural object is a pivot that
+has been *promoted* by satisfying a creation law.
+
+**Object vs. event.** A structural object is *persistent* (it stands until
+destroyed). A structural *event* is *instantaneous* (the moment an object is
+created or broken). Both are evidence (Part 1 §1.4), but they differ in
+temporality: the *break of BOS1* is an event; the *existence of BOS1* is a
+standing object. Part 5 formalises how events become standing evidence and how
+standing evidence decays.
+
+---
+
+## 2.2 — The Persistent Structural Objects
+
+The complete and **closed** set. No structural object exists outside this list.
+
+### 2.2.1 — Point4Origin
+
+**Definition.** The **origin of the current wave** — the level/zone from which
+control was established and which defines the wave's survival (Part 1 §1.2).
+"Point 4" denotes its place in the structural sequence that births a wave (the
+origin order block / launch zone).
+
+- **Creation law.** Created at wave birth, when control is established and a new
+  wave is spawned. Its anchor is the launch zone (origin high / origin low) and
+  the spawn bar. It is the **first** object of every wave.
+- **Persistence law.** Persists for the entire life of the wave. It is the
+  wave's identity; it does not move during the wave's life.
+- **Destruction law.** Destroyed when the wave dies — either by **origin breach**
+  (price decisively closes beyond it against the controlling side → control lost
+  → §2.2.9) or by **completion-and-resolution** that spawns the next wave. On
+  destruction, the next wave's Point4Origin is created (death = birth, Part 1
+  §1.2, §1.15 invariant 10).
+- **Polarity.** For a bullish wave the surviving edge is the origin **low**; for
+  a bearish wave it is the origin **high**. The directional read (Part 1 §1.2)
+  is *price vs. this surviving edge*.
+
+> *Implementation note:* this is the object behind the already-implemented
+> origin-based direction (`se*_inv` as the surviving edge). Part 2 elevates it
+> from an ad-hoc "invalidation" value to the **constitutional origin** of the
+> wave.
+
+### 2.2.2 — ProtectedSwing1
+
+**Definition.** The **first swing the controlling side must defend** to keep the
+wave alive after birth — the nearest counter-swing whose violation would be the
+first sign control is contestable.
+
+- **Creation law.** Created shortly after wave birth, as the first qualifying
+  counter-pivot behind the initial expansion leg.
+- **Persistence law.** Persists while undefeated. May be *upgraded* (re-anchored
+  to a newer protected level) as the wave extends and leaves higher/lower
+  defended swings behind.
+- **Destruction law.** Destroyed when violated (a counter-break through it) — its
+  violation is the **BOS1 event** (§2.2.4). Also destroyed at wave death.
+- **Polarity.** Bullish wave: a swing **low** that must hold. Bearish wave: a
+  swing **high** that must hold.
+
+### 2.2.3 — ProtectedSwing2
+
+**Definition.** The **second, deeper protected swing** — the level whose
+violation signifies a *more serious* erosion of control than ProtectedSwing1.
+ProtectedSwing1 and ProtectedSwing2 form a **two-tier defence**: first break is a
+warning, second break is a structural counter-trend developing.
+
+- **Creation law.** Created after ProtectedSwing1, as the next-deeper defended
+  swing (or promoted from ProtectedSwing1 once a new protected level forms ahead
+  of it).
+- **Persistence law.** Persists while undefeated; participates in the BOS
+  hierarchy (§2.3).
+- **Destruction law.** Destroyed when violated — its violation is the **BOS2
+  event** (§2.2.5). Also destroyed at wave death.
+- **Polarity.** Same convention as ProtectedSwing1, one tier deeper.
+
+### 2.2.4 — BOS1 (First Break of Structure)
+
+**Definition.** The **first violation of a protected swing against the
+controlling side** — the first concrete structural sign that the controlling
+side's grip is loosening. BOS1 is *both* an event (the moment of break) and a
+standing object (the fact that a first break has occurred this wave).
+
+- **Creation law.** Created when ProtectedSwing1 is violated by a decisive close
+  (decisiveness rules — buffering against noise — are defined generically in
+  Part 5 / Part 8). 
+- **Persistence law.** Persists as standing evidence for the remainder of the
+  wave (the wave "has had its first break") unless invalidated by the
+  controlling side decisively reclaiming and extending (recovery rules, Part 8).
+- **Destruction law.** Cleared at wave death or on validated recovery.
+- **Evidence contributed.** `structureBOS1` (§2.4).
+
+> **Forbidden:** BOS1 → ExpansionPreConvexity. BOS1 is evidence; Pre-Convexity is
+> a phase that requires momentum decay and physics transfer-beginning to also be
+> present (Part 1 §1.13; Part 7 §9-equivalent).
+
+### 2.2.5 — BOS2 (Second Break of Structure)
+
+**Definition.** The **violation of ProtectedSwing2** — a deeper break confirming
+a counter-structure is genuinely developing, not a single counter-swing.
+
+- **Creation law.** Created when ProtectedSwing2 is violated decisively, after
+  BOS1 exists.
+- **Persistence law.** Persists for the wave; escalates the structural reading
+  from "first warning" (BOS1) to "counter-structure developing."
+- **Destruction law.** Cleared at wave death or validated recovery.
+- **Evidence contributed.** `structureBOS2` and `structureCounterDeveloping`
+  (§2.4).
+
+> **Forbidden:** BOS2 → ExpansionLiquidity. BOS2 is evidence only.
+
+### 2.2.6 — InductionOrigin
+
+**Definition.** The **origin of an inducement move** — the level from which a
+counter-directional inducement (a liquidity-engineering leg) launches within the
+wave. The InductionOrigin marks where the controlling side (or the transfer
+process) sets up the inducement that precedes a liquidity grab.
+
+- **Creation law.** Created when an inducement leg is identified launching from a
+  qualifying level after counter-structure begins (typically after BOS1/BOS2).
+- **Persistence law.** Persists while the inducement structure is in play.
+- **Destruction law.** Destroyed when its **break** occurs (§2.2.8) or at wave
+  death.
+- **Polarity.** Oriented against the controlling side of the wave.
+
+### 2.2.7 — InductionExtreme
+
+**Definition.** The **extreme reached by the inducement move** — the furthest
+counter-extension of the inducement leg, the level around which liquidity pools
+and which becomes the target of a subsequent sweep.
+
+- **Creation law.** Created/updated as the inducement leg extends to its extreme.
+- **Persistence law.** Persists as the standing inducement extreme; the level
+  whose existence is required (as structure-evidence) for the *Liquidity* phases
+  (Part 1 §1.3; activation in Part 7).
+- **Destruction law.** Destroyed at wave death or when superseded by a new
+  inducement structure.
+- **Evidence contributed.** `structureInductionExtreme` (§2.4).
+
+> **Forbidden:** InductionExtreme existing → ExpansionLiquidity. The phase
+> additionally requires momentum "expansion stalled + liquidity attraction" and
+> physics "FRZ destination attraction + DOM imbalance + capacity saturation"
+> (Part 7 §11-equivalent).
+
+### 2.2.8 — InductionOriginBreak
+
+**Definition.** The **break of the InductionOrigin** — the event/object marking
+that the inducement has been resolved and price has broken back through the
+inducement's origin, typically the trigger structure preceding **objective
+completion** (NewHigh/NewLow delivery in the controlling direction, or the
+confirmation of transfer in the counter direction).
+
+- **Creation law.** Created when price decisively breaks the InductionOrigin.
+- **Persistence law.** Persists as standing evidence that the inducement cycle
+  has resolved this wave.
+- **Destruction law.** Cleared at wave death.
+- **Evidence contributed.** Feeds `structureObjectiveComplete` (when in the
+  controlling direction, in concert with ExpansionExtreme exceed) (§2.4).
+
+> **Forbidden:** InductionOriginBreak → NewHigh. NewHigh additionally requires
+> momentum "acceleration returns + participation restored" and physics "rotation
+> complete + integrity restored + liquidity cycle complete" (Part 7
+> §12-equivalent).
+
+### 2.2.9 — ExpansionExtreme
+
+**Definition.** The **furthest point the wave has reached in its controlling
+direction** — the running high of a bullish wave or running low of a bearish
+wave. It is the measure of how far the objective has been pursued.
+
+- **Creation law.** Created at wave birth (initialised at the origin) and
+  **updated continuously** as the wave extends in its controlling direction.
+- **Persistence law.** Persists and ratchets monotonically in the controlling
+  direction for the life of the wave.
+- **Destruction law.** Reset at wave death (the next wave starts a new
+  ExpansionExtreme).
+- **Evidence contributed.** Distance/progress signals; participates in
+  `structureObjectiveComplete` (objective exceeded) and feeds capacity (Part 1
+  §1.10; physics in Part 4).
+
+### 2.2.10 — CompletionExtreme
+
+**Definition.** The **extreme at the moment objective completion is recognised**
+— the level marking delivery (NewHigh/NewLow). It freezes the ExpansionExtreme at
+the point the creation half of the lifecycle ends and the resolution half begins
+(Part 1 §1.11).
+
+- **Creation law.** Created when objective completion is confirmed (structure
+  component of completion; full completion still requires momentum + physics,
+  Part 1 §1.11).
+- **Persistence law.** Persists through the resolution half (Absorption →
+  Retracement → Return) as the reference extreme the resolution is measured
+  against.
+- **Destruction law.** Cleared at wave death / next wave birth.
+- **Evidence contributed.** Anchors `structureObjectiveComplete`; reference for
+  `structureDemandReturn` / `structureSupplyReturn` (§2.4).
+
+---
+
+## 2.3 — The BOS Hierarchy
+
+Structure escalates in **ordered tiers**, never out of sequence:
+
+```
+ProtectedSwing1 violated  → BOS1  → "first warning"
+ProtectedSwing2 violated  → BOS2  → "counter-structure developing"
+InductionOrigin formed    → inducement engineering underway
+InductionExtreme set      → liquidity pooled (sweep target exists)
+InductionOriginBreak      → inducement resolved (objective trigger / transfer confirm)
+```
+
+**Hierarchy laws:**
+
+1. **Ordering.** BOS2 cannot exist before BOS1. Induction objects form in the
+   transfer region (after counter-structure begins). The skeleton tells a story
+   in order; out-of-order promotion is forbidden.
+2. **Monotonic escalation within a wave.** Structural severity only increases
+   within a living wave until either recovery (controlling side reclaims, Part 8)
+   or wave death.
+3. **Directional symmetry.** The entire hierarchy mirrors for bullish and
+   bearish waves; "protected" means the level the *controlling* side defends, and
+   "counter" means *against* the controlling side. The retracement-half phases
+   reuse the same object types (BOS1/BOS2/Induction*) but read in the
+   now-dominant counter direction (Part 7 §15–17-equivalent).
+
+---
+
+## 2.4 — Structure-Evidence Outputs (the only permitted exposure)
+
+These are the **complete and closed** set of signals Structure exposes to Engine
+1A. Each is **evidence** (boolean or graded), owned solely by Structure, and
+**never** a phase. Engine 1A consumes them only in confluence with Momentum
+(Part 3) and Physics (Part 4).
+
+| Evidence | Meaning | Derived from |
+|---|---|---|
+| `structureExpansionIntact` | Controlling side still in control; no BOS against it; ExpansionExtreme advancing | Point4Origin holding, no BOS1, ExpansionExtreme ratcheting |
+| `structureBOS1` | First protected swing broken | BOS1 object (§2.2.4) |
+| `structureBOS2` | Second protected swing broken | BOS2 object (§2.2.5) |
+| `structureCounterDeveloping` | A genuine counter-structure is forming | BOS1 ∧ BOS2 / counter-pivot sequence |
+| `structureInductionExtreme` | An inducement extreme (liquidity pool / sweep target) exists | InductionExtreme object (§2.2.7) |
+| `structureOriginBreak` | The wave's origin has been breached (control invalidated) | Point4Origin destruction by breach (§2.2.1) |
+| `structureObjectiveComplete` | Objective exceeded / induction origin broken in controlling direction | InductionOriginBreak ∧ ExpansionExtreme exceed ∧ CompletionExtreme set |
+| `structureControlLost` | Controlling side has lost structural control | OriginBreak ∨ (BOS2 ∧ counter-extension beyond defence) |
+| `structureDemandReturn` | Price has structurally returned to a demand origin/zone (bull regeneration setup) | Return to Point4Origin-class zone after completion |
+| `structureSupplyReturn` | Price has structurally returned to a supply origin/zone (bear regeneration setup) | Return to Point4Origin-class zone after completion |
+
+**Output laws:**
+
+1. **Evidence only.** None of the above is, or maps to, a phase (Part 1 §1.4,
+   §1.15 invariant 3).
+2. **Falsifiable.** Each is withdrawn the instant its underlying object is
+   destroyed or its condition ceases (Part 1 §1.4; persistence in Part 5).
+3. **No private vocabulary.** Structure may not emit any string outside this
+   table; it must never emit "Weak Expansion", "M1 Convexity", "Dominant Phase",
+   etc. (Part 1 §1.15 invariant 2).
+4. **Direction-aware, polarity-symmetric.** Each evidence item is computed for
+   the controlling direction of the current wave and mirrors for the opposite
+   wave (§2.3 law 3).
+
+---
+
+## 2.5 — Inheritance (lower degrees inherit, never classify)
+
+Per Part 1 §1.2 (recursion) and §1.15 (one authority), only the M5 degree's
+structural objects feed Engine 1A's classification. Other degrees (M1, M3, M15,
+H1, H4, and higher per Part 12) maintain their **own** structural objects for
+**context**, but:
+
+1. They expose their structure-evidence **as context to consumers** (Story,
+   Fusion, Dashboard), never to the phase gate.
+2. They **inherit** the lifecycle meaning from Engine 1A; a lower-degree BOS does
+   not change the M5 phase.
+3. A lower-degree wave's death may register at M5 only as **evidence**
+   (e.g. contributing to `structureCounterDeveloping`), never as a phase change.
+
+The detailed restrictions on what each degree may and may not do are deferred to
+**Part 11 — Recursive Layer Constitution**. Part 2 only fixes the principle:
+**one skeleton classifies; the others describe.**
+
+---
+
+## 2.6 — Part 2 Invariants (added to the §1.15 set)
+
+11. **Closed object set.** Only the ten objects of §2.2 exist. No new structural
+    object may be invented by any detector or timeframe.
+12. **Ordered escalation.** The BOS hierarchy (§2.3) is strictly ordered; no
+    out-of-sequence promotion.
+13. **Structure emits only the §2.4 evidence table.** Nothing else crosses the
+    boundary from Structure to Engine 1A.
+14. **One skeleton classifies.** Only M5-degree structure feeds the phase gate;
+    all other degrees are context (§2.5).
+15. **Objects are falsifiable.** Destruction of an object immediately withdraws
+    its evidence (no stale skeleton).
+
+---
+
+## End of Part 2
+
+**Part 2 establishes the skeleton: the closed set of persistent structural
+objects, their creation/persistence/destruction laws, the ordered BOS hierarchy,
+and the closed set of structure-evidence outputs — strictly evidence, never
+phase.**
+
+**Next:** *Part 3 — Momentum Ontology* — the muscle: the Efficiency, Velocity,
+Acceleration, Participation, CounterFlow, Decay, Impulse, Exhaustion, Transfer,
+and Compression engines, defined as **evidence producers** (momExpansionStrong,
+momExpansionWeakening, momCounterParticipationGrowing, momExhaustionDeveloping,
+momAccelerationReturning, momRetracementDominant, momRegenerationDeveloping) —
+strictly evidence, never phase — and how momentum evidence aligns in time with
+the structural objects of Part 2.
+
+*Awaiting ratification of Part 2 before drafting Part 3.*
