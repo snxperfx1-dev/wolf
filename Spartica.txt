@@ -739,12 +739,28 @@ string l4_phaseCanon = f_phaseStr(int(nz(se240_ph)))   // L4 = H4 context
 
 // ── Per-layer structural objects (Direction / Swings / BOS / CHoCH / Point4 /
 //    Invalidation / Targets / FRZ) — ALL fixed-tf, none chart-dependent ───────
-int   m1_dir = int(nz(se1_dir))
-int   l3_dir = int(nz(se3_dir))
-int   l0_dir = int(nz(se5_dir))
-int   l1_dir = int(nz(se15_dir))
-int   l2_dir = int(nz(se60_dir))
-int   l4_dir = int(nz(se240_dir))
+// ── Canonical wave DIRECTION per fixed timeframe ─────────────────────────────
+// A wave's direction is defined by where LIVE price sits relative to that wave's
+// ORIGIN: price above the origin -> Bullish wave; once the origin is breached,
+// price is now building a Bearish wave (and symmetrically for a bear wave whose
+// origin is its launch high). The fixed-tf engine already detects each wave and
+// exports both its origin (se*_inv) and an origin-based direction (se*_dir) that
+// it computes from that timeframe's OWN close inside request.security. On higher
+// timeframes that close lags (it only updates when the HTF bar closes), which
+// left the labels stale after an intrabar origin breach. We therefore re-evaluate
+// direction here in CHART context against the live `close`, so every timeframe's
+// label tracks the CURRENT price vs its origin in real time. These six variables
+// are the single source of wave direction for every dashboard panel, on-chart
+// label, narrative and downstream score, so fixing them here fixes them all.
+f_waveDirByOrigin(float _origin, int _fallbackDir) =>
+    not na(_origin) ? (close > _origin ? 1 : close < _origin ? -1 : _fallbackDir) : _fallbackDir
+
+int   m1_dir = f_waveDirByOrigin(se1_inv,   int(nz(se1_dir)))
+int   l3_dir = f_waveDirByOrigin(se3_inv,   int(nz(se3_dir)))
+int   l0_dir = f_waveDirByOrigin(se5_inv,   int(nz(se5_dir)))
+int   l1_dir = f_waveDirByOrigin(se15_inv,  int(nz(se15_dir)))
+int   l2_dir = f_waveDirByOrigin(se60_inv,  int(nz(se60_dir)))
+int   l4_dir = f_waveDirByOrigin(se240_inv, int(nz(se240_dir)))
 int   m1_bos = int(nz(se1_bos))
 int   l3_bos = int(nz(se3_bos))
 int   l0_bos = int(nz(se5_bos))
@@ -772,6 +788,7 @@ float l3_invalidation = se3_inv
 float l0_invalidation = se5_inv
 float l1_invalidation = se15_inv
 float l2_invalidation = se60_inv
+float l4_invalidation = se240_inv
 float m1_target = se1_tgt
 float l3_target = se3_tgt
 float l0_target = se5_tgt
@@ -808,6 +825,7 @@ string l3_dirLabel = l3_dir == 1 ? "Bullish Wave" : l3_dir == -1 ? "Bearish Wave
 string l0_dirLabel = l0_dir == 1 ? "Bullish Wave" : l0_dir == -1 ? "Bearish Wave" : "Undefined"
 string l1_dirLabel = l1_dir == 1 ? "Bullish Wave" : l1_dir == -1 ? "Bearish Wave" : "Undefined"
 string l2_dirLabel = l2_dir == 1 ? "Bullish Wave" : l2_dir == -1 ? "Bearish Wave" : "Undefined"
+string l4_dirLabel = l4_dir == 1 ? "Bullish Wave" : l4_dir == -1 ? "Bearish Wave" : "Undefined"
 
 // ── FRACTAL STACK ALIGNMENT (v90) ────────────────────────────────────────────
 // How unified the five FIXED structure layers are. Feeds the scores
@@ -3427,7 +3445,7 @@ f_renderDashA() =>
             table.cell(dashA, 0, _ra, "L0 Target",
                  text_color=color.silver, text_size=_szA)
             table.cell(dashA, 1, _ra, l0_targetWave,
-                 text_color=direction >= 0 ? color.teal : color.red,
+                 text_color=l0_dir == 1 ? color.teal : l0_dir == -1 ? color.red : color.gray,
                  text_size=_szA)
             _ra := _ra + 1
             // ── L0: Current Phase Within Curve Cycle (M5 fixed-tf engine) ─────
@@ -3953,7 +3971,7 @@ string narr_child     = l1_targetWave + " | " + l1_currentPhase
 string narr_grandchild = l2_targetWave + " | " + l2_currentPhase
 string narr_micro     = l3_targetWave + " | " + l3_currentPhase
 string narr_m1        = m1_dirLabel + " | " + m1_phaseCanon
-string narr_l4        = (l4_dir == 1 ? "Bullish Wave" : l4_dir == -1 ? "Bearish Wave" : "Undefined") + " | " + l4_phaseCanon
+string narr_l4        = l4_dirLabel + " | " + l4_phaseCanon
 
 string narr_outcome =
      fusionInterpretation == "HTF Intact — LTF Reversal Forming" ?
@@ -4208,7 +4226,7 @@ f_renderDashP3() =>
             table.cell(dashP3, 2, _rpR, "H4",
                  text_color=color.silver, text_size=_szA)
             table.cell(dashP3, 3, _rpR,
-                 (l4_dir == 1 ? "Bullish Wave" : l4_dir == -1 ? "Bearish Wave" : "Undefined") + "\n" + l4_phaseCanon,
+                 l4_dirLabel + "\n" + l4_phaseCanon,
                  text_color=color.new(color.orange, 0), text_size=_szA)
             _rpR := _rpR + 1
 
