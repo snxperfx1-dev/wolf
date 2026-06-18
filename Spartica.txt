@@ -3456,6 +3456,434 @@ string _szA = _ts == "tiny" ? size.tiny : size.small
 // DASHBOARD PANELS A/B/C/FU — wrapped in function to satisfy body-length limit
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ─────────────────────────────────────────────────────────────────────────────
+// DASHBOARD PANEL B — split out to satisfy per-function external-element limit
+// ─────────────────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// PHASE 3 — RECURSIVE WAVE INTELLIGENCE ENGINE (v68)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ── P3-1: RECURSIVE WAVE OBJECTS ─────────────────────────────────────────────
+// REWIRED (v90): every layer now reads its OWN fixed-tf engine above.
+// L0=M5 engine, L1=M15 engine, L2=H1 engine, L3=M3 engine (M1 = se1 engine).
+// No value below depends on the chart timeframe.
+
+float  l0_waveProgress       = nz(se5_wp)
+float  l0_convexityMaturity  = nz(se5_cm)
+float  l0_modelFit           = nz(se5_mf)
+string l0_dominantPhase      = f_hypFam(l0_phaseCanon)   // L0 = M5 fixed-tf structure
+float  l0_confidence         = math.max(10.0, math.min(100.0, nz(se5_mf)))
+string l0_prediction         = f_nextPhase(int(nz(se5_ph)))
+float  l0_predProb           = math.max(10.0, math.min(100.0, nz(se5_mf) * 0.6 + nz(se5_wp) * 0.4))
+
+// Retained belief-score strengths — used ONLY by the P3-3 dominance heuristic,
+// never for structural verdicts (those come from the fixed engines above).
+float _l1_expStrength   = expScr_tf1
+float _l1_decStrength   = decScr_tf1
+float _l1_absStrength   = abScr_tf1
+float _l1_liqStrength   = liqScr_tf1
+
+int   fam_l1raw = f_phaseFamilyCode(int(nz(se15_ph)))
+float l1_waveProgress      = nz(se15_wp)
+float l1_convexityMaturity = nz(se15_cm)
+float l1_modelFit          = nz(se15_mf)
+string l1_dominantPhase    = f_famSimple(fam_l1raw)
+var float l1_confidence = 50.0
+float _l1_confRaw = nz(se15_mf)
+l1_confidence := l1_confidence + 0.4 * (_l1_confRaw - l1_confidence)
+l1_confidence := math.max(10.0, math.min(100.0, l1_confidence))
+string l1_prediction =
+     l1_dominantPhase == "Expansion"     ? "Pre-Convexity" :
+     l1_dominantPhase == "Pre-Convexity" ? "Liquidity"     :
+     l1_dominantPhase == "Liquidity"     ? "Absorption"    : "Expansion"
+
+float _l2_expStrength   = expScr_tf2
+float _l2_decStrength   = decScr_tf2
+float _l2_absStrength   = abScr_tf2
+float _l2_liqStrength   = liqScr_tf2
+
+int   fam_l2raw = f_phaseFamilyCode(int(nz(se60_ph)))
+float l2_waveProgress      = nz(se60_wp)
+float l2_convexityMaturity = nz(se60_cm)
+float l2_modelFit          = nz(se60_mf)
+string l2_dominantPhase    = f_famSimple(fam_l2raw)
+var float l2_confidence = 50.0
+float _l2_confRaw = nz(se60_mf)
+l2_confidence := l2_confidence + 0.4 * (_l2_confRaw - l2_confidence)
+l2_confidence := math.max(10.0, math.min(100.0, l2_confidence))
+string l2_prediction =
+     l2_dominantPhase == "Expansion"     ? "Pre-Convexity" :
+     l2_dominantPhase == "Pre-Convexity" ? "Liquidity"     :
+     l2_dominantPhase == "Liquidity"     ? "Absorption"    : "Expansion"
+
+// L3 — now the M3 fixed-tf structure engine (previously bound to M1 physics).
+int   fam_l3raw = f_phaseFamilyCode(int(nz(se3_ph)))
+int   _l3_signals =
+     (m1ExpansionWeak  ? 1 : 0) +
+     (m1ConvexityEmer  ? 1 : 0) +
+     (m1LiquidityEmer  ? 1 : 0) +
+     (m1AbsorptionEmer ? 1 : 0)
+float l3_waveProgress      = nz(se3_wp)
+float l3_convexityMaturity = nz(se3_cm)
+float l3_modelFit          = nz(se3_mf)
+string l3_dominantPhase    = f_famMicro(fam_l3raw)
+float l3_confidence        = math.max(10.0, math.min(100.0, nz(se3_mf)))
+string l3_prediction   =
+     l3_dominantPhase == "M1 Convexity"  ? "M1 Liquidity"  :
+     l3_dominantPhase == "M1 Liquidity"  ? "M1 Absorption" :
+     l3_dominantPhase == "M1 Absorption" ? "M1 Expansion"  : "M1 Convexity"
+
+// ── P3-7: WAVE AGREEMENT ENGINE (f_phaseFamily moved here — used in P3-2 and P3-4) ──────────
+
+// f_phaseFamily: maps both old hypothesis vocabulary AND canonical IE1A phases
+// to lifecycle family integers (used by agreement / fractal confidence engines).
+f_phaseFamily(string ph) =>
+    int family = 0
+    // Old hypothesis vocabulary (L1/L2/L3 belief layers)
+    if ph == "EXPANSION" or ph == "Expansion"
+        family := 1
+    else if ph == "CONVEXITY FORMING" or ph == "Pre-Convexity" or ph == "Liquidity"
+        family := 2
+    else if ph == "CREATION FORMING"
+        family := 3
+    else if ph == "ABSORPTION" or ph == "Absorption"
+        family := 4
+    else if ph == "RETRACEMENT"
+        family := 5
+    else if ph == "DEMAND/SUPPLY RETURN"
+        family := 6
+    // Canonical IE1A lifecycle phases
+    else if ph == "Point 4 Origin"
+        family := 0
+    else if ph == "Expansion"
+        family := 1
+    else if ph == "Expansion Pre-Convexity" or ph == "Expansion Induction" or ph == "Expansion Liquidity"
+        family := 2
+    else if ph == "New High" or ph == "New Low"
+        family := 3
+    else if ph == "Absorption"
+        family := 4
+    else if ph == "Retracement" or ph == "Retracement Pre-Convexity" or ph == "Retracement Induction" or ph == "Retracement Liquidity"
+        family := 5
+    else if ph == "Demand Return" or ph == "Supply Return"
+        family := 6
+    family
+
+// L0/L1/L2 lifecycle families now come from the FIXED-tf engines (v90).
+// Previously fam_l0 used chart-tf ie1a_currentPhase — that was a chart-tf leak.
+int fam_l0 = f_phaseFamilyCode(int(nz(se5_ph)))
+int fam_l1 = f_phaseFamilyCode(int(nz(se15_ph)))
+int fam_l2 = f_phaseFamilyCode(int(nz(se60_ph)))
+
+// ── P3-2: PARENT-CHILD RELATIONSHIP ENGINE ────────────────────────────────────
+
+string parentState      = l2_dominantPhase
+string childState       = l1_dominantPhase
+string grandchildState  = l0_dominantPhase
+
+bool parentChildHarmonic =
+     (parentState == "Expansion" and childState == "Pre-Convexity") or
+     (parentState == "Expansion" and childState == "Liquidity")      or
+     (parentState == "Pre-Convexity" and childState == "Liquidity")  or
+     (parentState == "Liquidity" and childState == "Absorption")     or
+     (parentState == "Absorption" and childState == "Expansion")
+
+// childGrandchildHarmonic: uses fam_l0 (IE1A family) for L0 comparisons,
+// so both old hypothesis vocabulary and canonical IE1A phases are handled correctly.
+bool childGrandchildHarmonic =
+     (childState == "Expansion" and (fam_l0 == 1 or fam_l0 == 2)) or
+     (childState == "Pre-Convexity" and (fam_l0 == 2 or fam_l0 == 3)) or
+     (childState == "Liquidity" and (fam_l0 == 4 or fam_l0 == 5)) or
+     (childState == "Absorption" and fam_l0 == 6)
+
+string parentChildRelationship =
+     parentChildHarmonic      ? "Harmonic"  :
+     parentState == childState ? "Parallel"  : "Counter"
+
+string childGrandchildRelationship =
+     childGrandchildHarmonic              ? "Harmonic"  :
+     childState == "Expansion" and
+     childState == "Expansion" and fam_l0 == 6 ? "Counter-Within-Parent" : "Nested" 
+
+// ── P3-3: WAVE DOMINANCE ENGINE ───────────────────────────────────────────────
+
+float l0_dominance = math.min(
+     (nz(se5_wp)  * 0.45) +
+     (nz(se5_mf)  * 0.35) +
+     (nz(se5_cm)  * 0.20),
+     100.0)
+
+float l1_dominance = math.min(
+     (_l1_expStrength * 0.35) +
+     (expScr_tf1 > 60 ? 25.0 : expScr_tf1 * 0.40) +
+     (liqScr_tf1 * 0.20) +
+     (l1_modelFit * 0.20),
+     100.0)
+
+float l2_dominance = math.min(
+     (_l2_expStrength * 0.35) +
+     (expScr_tf2 > 60 ? 30.0 : expScr_tf2 * 0.50) +
+     (liqScr_tf2 * 0.15) +
+     (l2_modelFit * 0.20),
+     100.0)
+
+float l3_dominance = math.min(nz(se3_mf) * 0.60 + nz(se3_wp) * 0.40, 100.0)
+
+string dominantWaveLevel =
+     l2_dominance >= l1_dominance and l2_dominance >= l0_dominance and l2_dominance >= l3_dominance ? "L2 HTF"    :
+     l1_dominance >= l0_dominance and l1_dominance >= l3_dominance                                  ? "L1 CHILD"  :
+     l0_dominance >= l3_dominance                                                                    ? "L0 PRIMARY" : "L3 MICRO"
+
+// ── P3-4: MULTI-TIMEFRAME WAVE FUSION LAYER ──────────────────────────────────
+
+bool htfTrendIntact     = l2_dominantPhase == "Expansion" and l2_confidence > 45.0
+
+// ltfReversalForming: uses fam_l0 for L0 so canonical IE1A phases are recognised.
+bool ltfReversalForming =
+     (fam_l0 == 4 or fam_l0 == 5) or
+     (l3_dominantPhase == "M1 Absorption" or l3_dominantPhase == "M1 Liquidity")
+
+string fusionInterpretation =
+     htfTrendIntact and not ltfReversalForming  ? "HTF Intact — LTF Expansion Aligned"        :
+     htfTrendIntact and ltfReversalForming       ? "HTF Intact — LTF Reversal Forming"          :
+     not htfTrendIntact and ltfReversalForming   ? "HTF Weakening — LTF Reversal Confirming"    :
+     l2_dominantPhase == "Absorption" and
+     l1_dominantPhase == "Expansion"             ? "HTF Absorption — ITF Counter-Bounce"        :
+     l2_dominantPhase == "Liquidity" and
+     (l1_dominantPhase == "Absorption" or
+      fam_l0 == 5)                               ? "HTF Liq Sweep — Entry Zone Forming"         :
+                                                   "Mixed — Await Alignment"
+
+float fusionConfidence = math.min(
+     l2_confidence * 0.40 + l1_confidence * 0.30 +
+     l0_confidence * 0.20 + l3_confidence * 0.10,
+     100.0)
+
+// ── P3-5: RECURSIVE ENTRY CYCLE ENGINE ───────────────────────────────────────
+
+float _cycleBaseProg = nz(waveProgress, 0.0)
+
+float cycle1_completion = math.min(
+     (entryCycle >= 1 ? 60.0 : _cycleBaseProg * 0.60) +
+     (recursiveComplete and entryCycle >= 1 ? 40.0 : 0.0), 100.0)
+
+float cycle2_completion = math.min(
+     (entryCycle >= 2 ? 60.0 : entryCycle >= 1 ? _cycleBaseProg * 0.40 : 0.0) +
+     (recursiveComplete and entryCycle >= 2 ? 40.0 : 0.0), 100.0)
+
+float cycle3_completion = math.min(
+     (entryCycle >= 3 ? 60.0 : entryCycle >= 2 ? _cycleBaseProg * 0.40 : 0.0) +
+     (recursiveComplete and entryCycle >= 3 ? 40.0 : 0.0), 100.0)
+
+float cycle4_completion = math.min(
+     (entryCycle >= 4 ? 60.0 : entryCycle >= 3 ? _cycleBaseProg * 0.40 : 0.0) +
+     (recursiveComplete and entryCycle >= 4 ? 40.0 : 0.0), 100.0)
+
+// activeCyclePhase — uses ENGINE 1A canonical phase (ie1a_currentPhase).
+// grandchildState still carries the ie1a_hypFamily vocabulary for L0 agreement/fusion;
+// the human-readable cycle label uses the canonical IE1A phase string.
+string activeCyclePhase =
+     entryCycle == 0 ?
+          ("Cycle 1 — " + l0_phaseCanon) :
+     "Entry Cycle " + str.tostring(entryCycle) + " — " + l0_phaseCanon
+
+// ── P3-6: GEOMETRIC CAPACITY ENGINE ──────────────────────────────────────────
+
+float geoCapacityScore = math.min(
+     (geoFullConvexityPossible    ? 100.0 :
+      geoPartialConvexityPossible ? 60.0  : 25.0) *
+     (not na(flipzoneWidth) ? math.max(0.5, 1.0 - flipzoneWidth / math.max(atr * 4.0, 1e-10)) : 0.5),
+     100.0)
+
+string geoCapacityNarrative =
+     geoFullConvexityPossible    ? "Full Conv — Complete wave expression" :
+     geoPartialConvexityPossible ? "Partial Conv — Limited but tradeable" :
+                                   "Absorption Only — Expect rapid absorption"
+
+float geoRemainingFraction = not na(availableSpace) ? availableSpace / 100.0 : 0.5
+
+// ── P3-7: WAVE AGREEMENT ENGINE ──────────────────────────────────────────────
+// f_phaseFamily and fam_l0/fam_l1/fam_l2 are declared before P3-2 above.
+
+// ─── UNIFIED WAVE CLASSIFIER (V71 REFACTOR) ───────────────────────────────────
+// Single shared classifier used by L0 / L1 / L2 / L3 / Entry Cycles.
+// Returns ONLY:
+//   targetWave   = "Bullish Wave" | "Bearish Wave"
+//   currentPhase = one canonical Unified Wave Lifecycle phase
+//
+// Canonical lifecycle phases (only these may appear in display):
+//   Point 4 Origin | Expansion | Expansion Pre-Convexity | Expansion Induction
+//   Expansion Liquidity | New High | New Low | Absorption | Retracement
+//   Retracement Pre-Convexity | Retracement Induction | Retracement Liquidity
+//   Demand Return | Supply Return
+// ─────────────────────────────────────────────────────────────────────────────
+
+// f_toCanonicalPhase and f_classifyWave are defined earlier (after primaryHypothesisConf)
+// so that l0_targetWave / l0_currentPhase are in scope for all sections that use them.
+// L0 is already computed there. Only L1/L2/L3 are classified here where their inputs exist.
+
+// ── Determine expansion-side for L1 / L2 / L3 ────────────────────────────────
+bool _l1_expSide = l1_dominantPhase == "Expansion" or l1_dominantPhase == "Pre-Convexity" or l1_dominantPhase == "Liquidity"
+bool _l2_expSide = l2_dominantPhase == "Expansion" or l2_dominantPhase == "Pre-Convexity" or l2_dominantPhase == "Liquidity"
+bool _l3_expSide = l3_dominantPhase == "M1 Expansion" or l3_dominantPhase == "M1 Exp Weak" or l3_dominantPhase == "M1 Convexity" or l3_dominantPhase == "M1 Liquidity"
+
+// ── Run classifier for L1 / L2 / L3 — directions from FIXED engines (v90) ────
+[l1_targetWave, l1_currentPhase] = f_classifyWave(l1_dominantPhase, l1_dir, _l1_expSide)
+[l2_targetWave, l2_currentPhase] = f_classifyWave(l2_dominantPhase, l2_dir, _l2_expSide)
+[l3_targetWave, l3_currentPhase] = f_classifyWave(l3_dominantPhase, l3_dir, _l3_expSide)
+
+// waveProgressCanonical — now sourced directly from ENGINE 1A.
+// ENGINE 1A is the sole lifecycle authority; score-based thresholds are prohibited
+// from assigning lifecycle phase.  waveProgress remains available as a confidence
+// signal for downstream engines but does not determine canonical phase.
+string waveProgressCanonical = l0_phaseCanon   // L0 = M5 fixed-tf structure (v90)
+
+string waveProgressDirLabel = waveProgressCanonical
+
+f_agreementScore(int a, int b) =>
+    int diff = math.abs(a - b)
+    if diff == 0
+        100
+    else if diff == 1
+        65
+    else if diff == 2
+        35
+    else
+        10
+
+float waveAgreement_l0l1 = f_agreementScore(fam_l0, fam_l1)
+float waveAgreement_l1l2 = f_agreementScore(fam_l1, fam_l2)
+float waveAgreement_l0l2 = f_agreementScore(fam_l0, fam_l2)
+
+float waveAgreement =
+     math.min(
+         waveAgreement_l0l1 * 0.40 +
+         waveAgreement_l1l2 * 0.35 +
+         waveAgreement_l0l2 * 0.25,
+         100.0)
+
+string waveAgreementLabel =
+     waveAgreement >= 85 ? "High Agreement" :
+     waveAgreement >= 60 ? "Moderate Agreement" :
+     waveAgreement >= 35 ? "Low Agreement" : "Counter Wave"
+
+// ── P3-8: FRACTAL CONFIDENCE ENGINE ──────────────────────────────────────────
+
+float _agreeBoost = (waveAgreement - 50.0) / 100.0
+
+float fractalConfidence = math.max(10.0, math.min(100.0,
+     l2_confidence * 0.35 +
+     l1_confidence * 0.30 +
+     l0_confidence * 0.25 +
+     l3_confidence * 0.10 +
+     _agreeBoost * 15.0))
+
+string fractalConfLabel =
+     fractalConfidence >= 80 ? "Exceptional" :
+     fractalConfidence >= 65 ? "Strong"       :
+     fractalConfidence >= 45 ? "Moderate"     : "Weak"
+
+// ── P3-9: WAVE NARRATIVE ENGINE ───────────────────────────────────────────────
+// Unified Wave Lifecycle — every row uses:
+//   "What Wave Price Is Trying To Make: <targetWave>"
+//   "Current Phase Within Curve Cycle: <currentPhase>"
+
+string narr_primary   = l0_targetWave + " | " + l0_currentPhase
+string narr_child     = l1_targetWave + " | " + l1_currentPhase
+string narr_grandchild = l2_targetWave + " | " + l2_currentPhase
+string narr_micro     = l3_targetWave + " | " + l3_currentPhase
+string narr_m1        = m1_dirLabel + " | " + m1_phaseCanon
+string narr_l4        = l4_dirLabel + " | " + l4_phaseCanon
+
+string narr_outcome =
+     fusionInterpretation == "HTF Intact — LTF Reversal Forming" ?
+          "Likely: " + l0_prediction + " then continuation"  :
+     fusionInterpretation == "HTF Weakening — LTF Reversal Confirming"  ?
+          "Likely: Structural Reversal Forming"              :
+     fusionInterpretation == "HTF Liq Sweep — Entry Zone Forming"  ?
+          "Likely: Entry Cycle " + str.tostring(math.min(entryCycle + 1, 4)) :
+          "Likely: " + l0_prediction
+
+// ── P3-10: EXECUTION PROBABILITY ENGINE V2 ───────────────────────────────────
+
+// v90: rewired to the FIXED-tf fractal stack and made direction-/conflict-aware.
+// HTF bias = H1 + H4 ; LTF bias = M1 + M3 + M5.  When the LTF stack turns against
+// the HTF stack, Continuation collapses and Reversal/Absorption rise — this is the
+// "M1 turning counter to HTF" case that previously left the panel pinned.
+int   _ep_htfSum  = l2_dir + l4_dir
+int   _ep_htfBias = _ep_htfSum > 0 ? 1 : _ep_htfSum < 0 ? -1 : 0
+int   _ep_ltfSum  = m1_dir + l3_dir + l0_dir
+int   _ep_ltfBias = _ep_ltfSum > 0 ? 1 : _ep_ltfSum < 0 ? -1 : 0
+bool  _ep_aligned  = _ep_htfBias != 0 and _ep_ltfBias == _ep_htfBias
+bool  _ep_conflict = _ep_htfBias != 0 and _ep_ltfBias == -_ep_htfBias
+float _ep_consensus = math.max(_stackBull, _stackBear) / 6.0 * 100.0
+bool  _ep_absL3 = l3_dominantPhase == "M1 Absorption" or l3_dominantPhase == "M1 Liquidity"
+
+float execProb_Continuation = math.max(0.0, math.min(
+     (_ep_aligned ? 40.0 : 0.0) +
+     (_ep_aligned and l2_dominantPhase == "Expansion" ? 20.0 : 0.0) +
+     (htfTrendIntact and not ltfReversalForming ? 15.0 : 0.0) +
+     (_ep_consensus * 0.25) -
+     (_ep_conflict ? 55.0 : 0.0) -
+     (ltfReversalForming ? 15.0 : 0.0),
+     100.0))
+
+float execProb_Reversal = math.min(
+     (_ep_conflict ? 35.0 : 0.0) +
+     (ltfReversalForming ? 25.0 : 0.0) +
+     (_ep_absL3 ? 15.0 : 0.0) +
+     (convexityMaturity > 60 ? convexityMaturity * 0.15 : 0.0) +
+     (waveAgreement < 45 ? (45.0 - waveAgreement) * 0.40 : 0.0),
+     100.0)
+
+float execProb_Expansion = math.min(
+     (_ep_aligned and (l0_dominantPhase == "Expansion" or l1_dominantPhase == "Expansion") ? 35.0 : 0.0) +
+     (_ep_aligned ? _ep_consensus * 0.25 : 0.0) +
+     (htfTrendIntact ? 15.0 : 0.0) +
+     (liqSweepBull or liqSweepBear ? 15.0 : 0.0),
+     100.0)
+
+float execProb_Creation = math.min(
+     (predScore_Creation * 0.45) +
+     (geoCapacityScore * 0.20) +
+     (m1LiquidityEmer ? 15.0 : 0.0) +
+     (l3_dominantPhase == "M1 Liquidity" ? 15.0 : 0.0),
+     100.0)
+
+float execProb_Absorption = math.min(
+     (predScore_Absorption * 0.45) +
+     (m1AbsorptionEmer ? 20.0 : 0.0) +
+     (l3_dominantPhase == "M1 Absorption" ? 20.0 : 0.0) +
+     (_ep_conflict ? 15.0 : 0.0),
+     100.0)
+
+float execProb_StandDown = math.min(
+     (_ep_htfBias == 0 ? 30.0 : 0.0) +
+     (fractalStackDir == 0 ? 25.0 : 0.0) +
+     (waveAgreement < 35 ? (35.0 - waveAgreement) * 1.20 : 0.0) +
+     (physicsConsensus < 30 ? 20.0 : 0.0),
+     100.0)
+
+float execMaxProb = math.max(execProb_Continuation, execProb_Reversal,
+     execProb_Expansion, execProb_Creation, execProb_Absorption, execProb_StandDown)
+
+string execDirective =
+     execProb_StandDown  >= 55                      ? "STAND DOWN — NO ALIGNMENT"            :
+     _ep_conflict and execProb_Reversal >= 45       ? "TRANSITION — LTF COUNTER HTF"         :
+     execProb_Absorption == execMaxProb             ? "ABSORPTION — PREPARE REVERSAL"        :
+     execProb_Reversal   == execMaxProb             ? "REVERSAL PROBABILITY DOMINANT"        :
+     execProb_Creation   == execMaxProb             ? "NEW HIGH / NEW LOW FORMING"           :
+     execProb_Expansion  == execMaxProb             ? "EXPANSION ENTRY FORMING"              :
+     execProb_Continuation == execMaxProb           ? "CONTINUATION — HOLD / TRAIL"          : "AWAIT ALIGNMENT"
+
+// ── P3-D: PHASE 3 DASHBOARD PANEL (bottom_left) ──────────────────────────────
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PHASE 3 DASHBOARD — wrapped in function to satisfy body-length limit
+// ─────────────────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// ── Phase 3 high-conviction alert ─────────────────────────────────────────────
+// ── Dashboard & P3 render calls ─────────────────────────────────────────────
 bool p3_highConvictionSetup =
      fractalConfidence > 68 and
      waveAgreement > 70 and
