@@ -1,5 +1,5 @@
 //@version=6
-indicator("Letra 15", overlay=true, max_lines_count=500, max_labels_count=500, max_boxes_count=500, max_polylines_count=100)
+indicator("Letra 16", overlay=true, max_lines_count=500, max_labels_count=500, max_boxes_count=500, max_polylines_count=100)
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SECTION 1 — INPUT GROUPS
@@ -1741,8 +1741,11 @@ string liqg_title =
      liqg_isRetr and displayWaveDir_M5 == -1 ? "Pre-Supply Return Liquidation Wave" :
      liqg_isRetr                              ? "Pre-Demand Return Liquidation Wave" :
      displayWaveDir_M5 == -1                  ? "Pre-New Low Liquidation Wave" : "Pre-New High Liquidation Wave"
-// Retire on genuine completion (arrival + true CHoCH), invalidation, or new wave
-if liqg_active and ((liqg_objArrival and liqg_trueCHoCH) or ie1a_currentPhase == "Expansion" or ie1a_currentPhase == "Point 4 Origin")
+// Retire when the canonical phase LEAVES the induction/liquidity window (so the
+// liquidation overlay can never latch indefinitely), or on genuine completion.
+// This keeps currentDisplayPhase == the engine's real phase outside that window.
+bool _liqgInWindow = ie1a_currentPhase == "Expansion Induction" or ie1a_currentPhase == "Expansion Liquidity" or ie1a_currentPhase == "Retracement Induction" or ie1a_currentPhase == "Retracement Liquidity"
+if liqg_active and (not _liqgInWindow or (liqg_objArrival and liqg_trueCHoCH))
     liqg_active := false
 // ABSORPTION GATE (9.8): the visible phase may only read "Absorption" after a genuine
 // objective arrival + true CHoCH for THIS wave. Latch unlocks on arrival+CHoCH and
