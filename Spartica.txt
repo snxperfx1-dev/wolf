@@ -1,5 +1,5 @@
 //@version=6
-indicator("Letra 5", overlay=true, max_lines_count=500, max_labels_count=500, max_boxes_count=500, max_polylines_count=100)
+indicator("Letra 7", overlay=true, max_lines_count=500, max_labels_count=500, max_boxes_count=500, max_polylines_count=100)
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SECTION 1 — INPUT GROUPS
@@ -4235,6 +4235,38 @@ int _h4R_far  = bar_index + 24   // H4 — outermost (highest context)
 int _h4R_near = bar_index + 3
 int _m1R_far  = bar_index + 5    // M1 — innermost (finest micro)
 int _m1R_near = bar_index + 3
+
+// ════════════════════════════════════════════════════════════════════════════
+// ENGINE 1A.3A — SPATIAL PHASE LOCALIZATION (additive; chart-scope labels)
+// Pre-Convexity and Induction are LOCATIONS, not BOS events:
+//  · Pre-Convexity = the initial-displacement leg challenging the prior objective
+//    (price has covered most of the origin→target span with momentum slowing).
+//  · Induction     = price re-entering the flip-zone inducement area — the trap
+//    where early traders are enticed — born from flipzoneInducPrice.
+// Labels anchor to those zones, fire once per M5 wave, never at a BOS event.
+// ════════════════════════════════════════════════════════════════════════════
+var int  sp_waveBar     = na
+var bool sp_preConvDone = false
+var bool sp_inducDone   = false
+if point4OriginBar != sp_waveBar
+    sp_waveBar     := point4OriginBar
+    sp_preConvDone := false
+    sp_inducDone   := false
+float _spOrigin    = direction == 1 ? nz(point4OriginLow) : nz(point4OriginHigh)
+float _spSpan      = (not na(_spOrigin) and not na(se5_tgt)) ? math.abs(se5_tgt - _spOrigin) : na
+float _spTravel    = not na(_spOrigin) ? math.abs(close - _spOrigin) : na
+bool  _spChallenge = not na(_spSpan) and _spSpan > 0 and not na(_spTravel) and _spTravel >= _spSpan * 0.55
+if showTraceZones and not sp_preConvDone and direction != 0 and _spChallenge and efficiency < effThresh
+    label.new(bar_index, direction == 1 ? high : low, "Pre-Convexity",
+         style=direction == 1 ? label.style_label_down : label.style_label_up,
+         color=color.new(#c084fc, 30), textcolor=color.white, size=size.small)
+    sp_preConvDone := true
+bool  _spInFlip = not na(flipzoneInducLow) and not na(flipzoneInducHigh) and high >= flipzoneInducLow and low <= flipzoneInducHigh
+if showTraceZones and sp_preConvDone and not sp_inducDone and direction != 0 and _spInFlip
+    label.new(bar_index, nz(flipzoneInducPrice, close), "Induction",
+         style=direction == 1 ? label.style_label_up : label.style_label_down,
+         color=color.new(#ffd000, 30), textcolor=color.black, size=size.small)
+    sp_inducDone := true
 
 // ════════════════════════════════════════════════════════════════════════════
 // PHASE 1-A  L2 HTF TRACEABILITY
