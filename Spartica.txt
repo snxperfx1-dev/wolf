@@ -1,5 +1,5 @@
 //@version=6
-indicator("Letra 10", overlay=true, max_lines_count=500, max_labels_count=500, max_boxes_count=500, max_polylines_count=100)
+indicator("Letra 11", overlay=true, max_lines_count=500, max_labels_count=500, max_boxes_count=500, max_polylines_count=100)
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SECTION 1 — INPUT GROUPS
@@ -251,6 +251,20 @@ f_phaseAbbr(string _p) =>
      _p == "Demand Return"           ? "DEM·RTN" :
      _p == "Supply Return"           ? "SUP·RTN" :
      _p == "Point 4 Origin"          ? "P4" : _p
+
+// Clean on-chart phase label — sparse full-word vocabulary; "" = do not label
+// (plain Expansion / Point 4 Origin return "" so the chart isn't spammed).
+f_chartPhaseLabel(string _p) =>
+    str.contains(_p, "Liquidation Wave") ? (str.contains(_p, "Displacement") ? "Displacement of Liquidation leg" : str.contains(_p, "Objective Arrival") ? "Objective Arrival" : "Liquidation") :
+     _p == "Expansion Pre-Convexity" or _p == "Retracement Pre-Convexity" ? "Pre-Convexity" :
+     _p == "Expansion Induction" or _p == "Retracement Induction"         ? "Induction"     :
+     _p == "Expansion Liquidity" or _p == "Retracement Liquidity"         ? "Liquidation"   :
+     _p == "New High"      ? "New High"      :
+     _p == "New Low"       ? "New Low"       :
+     _p == "Absorption"    ? "Absorption"    :
+     _p == "Retracement"   ? "Retracement"   :
+     _p == "Demand Return" ? "Demand Return" :
+     _p == "Supply Return" ? "Supply Return" : ""
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SECTION 2 — CORE PHYSICS ENGINE
@@ -3413,9 +3427,10 @@ bool die_originOld     = die_originAge >= 100
 string die_narrative    = ie1a_hypFamily    // belief-family string from IE1A
 string die_narrativeDir = currentDisplayPhase // single Engine 1A display authority (canonical + liquidation substate)
 
+string die_chartLbl = f_chartPhaseLabel(currentDisplayPhase)
 var string die_lastNarrative = ""
-bool die_narrativeChanged = currentDisplayPhase != die_lastNarrative
-die_lastNarrative := currentDisplayPhase
+var int    die_lastNarrBar  = na
+bool die_narrativeChanged = die_chartLbl != "" and die_chartLbl != die_lastNarrative and (na(die_lastNarrBar) or (bar_index - die_lastNarrBar) >= 5)
 
 color die_narrCol =
      die_narrative == "EXPANSION"         ? color.lime   :
@@ -3436,9 +3451,11 @@ bool die_narrativeVisible =
 if showNarrative and die_narrativeChanged and direction != 0 and f_die_show(80) and die_narrativeVisible
     label.new(bar_index,
          direction == 1 ? high + atr * 1.2 : low - atr * 1.2,
-         die_narrativeDir,
+         die_chartLbl,
          style=direction == 1 ? label.style_label_down : label.style_label_up,
          color=color.new(die_narrCol, 40), textcolor=color.black, size=size.tiny)
+    die_lastNarrative := die_chartLbl
+    die_lastNarrBar   := bar_index
     die_labelCount := die_labelCount + 1
 
 // ── DIE-7: ENTRY CYCLE CLUSTER TRACKING ──────────────────────────────────────
@@ -4261,11 +4278,23 @@ if showTraceZones and not sp_preConvDone and direction != 0 and _spChallenge and
          style=direction == 1 ? label.style_label_down : label.style_label_up,
          color=color.new(#c084fc, 30), textcolor=color.white, size=size.small)
     sp_preConvDone := true
-bool  _spInFlip = not na(flipzoneInducLow) and not na(flipzoneInducHigh) and high >= flipzoneInducLow and low <= flipzoneInducHigh
-if showTraceZones and not sp_inducDone and direction != 0 and _spInFlip
-    label.new(bar_index, nz(flipzoneInducPrice, close), "Induction",
+// Induction = price entering the OPPOSING FU order block (early counter-traders
+// trapped): bearish wave (dir -1) → a BULL FU (demand, fu_dir +1); bullish → BEAR FU.
+float _indFuTop = na
+float _indFuBot = na
+int   _indFuN   = array.size(fu_top)
+if direction != 0 and _indFuN > 0
+    for _ifu = 0 to _indFuN - 1
+        if array.get(fu_dir, _ifu) == -direction
+            float _ift = array.get(fu_top, _ifu)
+            float _ifb = array.get(fu_bot, _ifu)
+            if high >= _ifb and low <= _ift
+                _indFuTop := _ift
+                _indFuBot := _ifb
+if showTraceZones and not sp_inducDone and direction != 0 and not na(_indFuTop)
+    label.new(bar_index, (_indFuTop + _indFuBot) / 2.0, "Induction",
          style=direction == 1 ? label.style_label_up : label.style_label_down,
-         color=color.new(#ffd000, 30), textcolor=color.black, size=size.small)
+         color=color.new(#ffd000, 20), textcolor=color.black, size=size.small)
     sp_inducDone := true
 
 // ════════════════════════════════════════════════════════════════════════════
