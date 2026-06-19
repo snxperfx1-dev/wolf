@@ -1,5 +1,5 @@
 //@version=6
-indicator("Letra 12", overlay=true, max_lines_count=500, max_labels_count=500, max_boxes_count=500, max_polylines_count=100)
+indicator("Letra 13", overlay=true, max_lines_count=500, max_labels_count=500, max_boxes_count=500, max_polylines_count=100)
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SECTION 1 — INPUT GROUPS
@@ -4276,21 +4276,26 @@ if showTraceZones and not sp_preConvDone and direction != 0 and _spChallenge and
          style=direction == 1 ? label.style_label_down : label.style_label_up,
          color=color.new(#c084fc, 30), textcolor=color.white, size=size.small)
     sp_preConvDone := true
-// Induction = price entering the OPPOSING FU order block (early counter-traders
-// trapped): bearish wave (dir -1) → a BULL FU (demand, fu_dir +1); bullish → BEAR FU.
-float _indFuTop = na
-float _indFuBot = na
-int   _indFuN   = array.size(fu_top)
-if direction != 0 and _indFuN > 0
-    for _ifu = 0 to _indFuN - 1
-        if array.get(fu_dir, _ifu) == -direction
-            float _ift = array.get(fu_top, _ifu)
-            float _ifb = array.get(fu_bot, _ifu)
-            if high >= _ifb and low <= _ift
-                _indFuTop := _ift
-                _indFuBot := _ifb
-if showTraceZones and not sp_inducDone and direction != 0 and not na(_indFuTop)
-    label.new(bar_index, (_indFuTop + _indFuBot) / 2.0, "Induction",
+// V73.8 TIGHT FU CANDLE → INDUCTION. The FU candle is a SPIKE that sweeps prior
+// structure then SELF-DESTRUCTS (body closes back through the candle). The spike
+// (the "FU") IS the flip zone. Bull FU (demand): a long LOWER spike sweeps a prior
+// swing low and the body closes in the upper half → spike zone [low, body-bottom].
+// Bear FU (supply): mirror. Induction = price entering the OPPOSING FU spike zone.
+var float fux_bullTop = na
+var float fux_bullBot = na
+var float fux_bearTop = na
+var float fux_bearBot = na
+float _fuMid2 = (high + low) / 2.0
+if (high - low) > atr * 0.6 and (math.min(open, close) - low) >= (high - low) * 0.5 and close > _fuMid2 and not na(prevSwingLow) and low < prevSwingLow and close > prevSwingLow
+    fux_bullTop := math.min(open, close)
+    fux_bullBot := low
+if (high - low) > atr * 0.6 and (high - math.max(open, close)) >= (high - low) * 0.5 and close < _fuMid2 and not na(prevSwingHigh) and high > prevSwingHigh and close < prevSwingHigh
+    fux_bearTop := high
+    fux_bearBot := math.max(open, close)
+float _indTop = direction == -1 ? fux_bullTop : direction == 1 ? fux_bearTop : na
+float _indBot = direction == -1 ? fux_bullBot : direction == 1 ? fux_bearBot : na
+if showTraceZones and not sp_inducDone and direction != 0 and not na(_indTop) and high >= _indBot and low <= _indTop
+    label.new(bar_index, (_indTop + _indBot) / 2.0, "Induction",
          style=direction == 1 ? label.style_label_up : label.style_label_down,
          color=color.new(#ffd000, 20), textcolor=color.black, size=size.small)
     sp_inducDone := true
