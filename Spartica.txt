@@ -1,5 +1,5 @@
 //@version=6
-indicator("Letra 13", overlay=true, max_lines_count=500, max_labels_count=500, max_boxes_count=500, max_polylines_count=100)
+indicator("Letra 14", overlay=true, max_lines_count=500, max_labels_count=500, max_boxes_count=500, max_polylines_count=100)
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SECTION 1 — INPUT GROUPS
@@ -1753,7 +1753,7 @@ if liqg_objArrival and liqg_trueCHoCH
 if ie1a_currentPhase == "Point 4 Origin"
     liqg_absorbUnlocked := false
 // SINGLE phase-string authority — consumed by every label / panel / narrative below
-string currentDisplayPhase = liqg_active ? (liqg_title + (liqg_subPhase != "" ? " • " + liqg_subPhase : "")) : (ie1a_currentPhase == "Absorption" and not liqg_absorbUnlocked) ? (displayWaveDir_M5 == -1 ? "Pre-New Low Liquidation Wave" : "Pre-New High Liquidation Wave") : ie1a_currentPhase
+string currentDisplayPhase = liqg_active ? (liqg_title + (liqg_subPhase != "" ? " • " + liqg_subPhase : "")) : ie1a_currentPhase
 string _cdpDir   = displayWaveDir_M5 == 1 ? "Bullish" : displayWaveDir_M5 == -1 ? "Bearish" : "Neutral"
 string liqg_arrTx = liqg_objArrival ? "Yes" : (not na(liqg_distPct) and liqg_distPct < 12) ? "Imminent" : "No"
 // 3-D AGREEMENT → dynamic confidence / integrity (agreement quality, not score thresholds).
@@ -3429,8 +3429,8 @@ string die_narrativeDir = currentDisplayPhase // single Engine 1A display author
 
 string die_chartLbl = f_chartPhaseLabel(currentDisplayPhase)
 var string die_lastNarrative = ""
-bool die_narrativeChanged = currentDisplayPhase != die_lastNarrative and die_chartLbl != ""
-die_lastNarrative := currentDisplayPhase
+bool die_narrativeChanged = die_chartLbl != die_lastNarrative and die_chartLbl != ""
+die_lastNarrative := die_chartLbl
 
 color die_narrCol =
      die_narrative == "EXPANSION"         ? color.lime   :
