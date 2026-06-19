@@ -1,5 +1,5 @@
 //@version=6
-indicator("Letra 16", overlay=true, max_lines_count=500, max_labels_count=500, max_boxes_count=500, max_polylines_count=100)
+indicator("Letra 17", overlay=true, max_lines_count=500, max_labels_count=500, max_boxes_count=500, max_polylines_count=100)
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SECTION 1 — INPUT GROUPS
@@ -233,24 +233,6 @@ f_mosBar(float _pct) =>
 // target (0-100). Physics/distance based — never a static phase-count lookup.
 f_tfProg(float _orig, float _tgt) =>
     (not na(_orig) and not na(_tgt) and math.abs(_tgt - _orig) > 1e-10) ? math.min(100.0, math.abs(close - _orig) / math.abs(_tgt - _orig) * 100.0) : na
-
-// Compact phase abbreviation for on-chart labels (keeps the chart uncluttered).
-f_phaseAbbr(string _p) =>
-    str.contains(_p, "Liquidation Wave") ? "LQW" :
-     _p == "Expansion"                ? "EXP"    :
-     _p == "Expansion Pre-Convexity" ? "EXP·PC" :
-     _p == "Expansion Induction"     ? "EXP·IN" :
-     _p == "Expansion Liquidity"     ? "EXP·LQ" :
-     _p == "New High"                ? "NEW HI" :
-     _p == "New Low"                 ? "NEW LO" :
-     _p == "Absorption"              ? "ABS"    :
-     _p == "Retracement"             ? "RET"    :
-     _p == "Retracement Pre-Convexity" ? "RET·PC" :
-     _p == "Retracement Induction"   ? "RET·IN" :
-     _p == "Retracement Liquidity"   ? "RET·LQ" :
-     _p == "Demand Return"           ? "DEM·RTN" :
-     _p == "Supply Return"           ? "SUP·RTN" :
-     _p == "Point 4 Origin"          ? "P4" : _p
 
 // Clean on-chart phase label — sparse full-word vocabulary; "" = do not label
 // (plain Expansion / Point 4 Origin return "" so the chart isn't spammed).
