@@ -1,5 +1,5 @@
 //@version=6
-indicator("Letra 8", overlay=true, max_lines_count=500, max_labels_count=500, max_boxes_count=500, max_polylines_count=100)
+indicator("Letra 7", overlay=true, max_lines_count=500, max_labels_count=500, max_boxes_count=500, max_polylines_count=100)
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SECTION 1 — INPUT GROUPS
@@ -4261,31 +4261,9 @@ if showTraceZones and not sp_preConvDone and direction != 0 and _spChallenge and
          style=direction == 1 ? label.style_label_down : label.style_label_up,
          color=color.new(#c084fc, 30), textcolor=color.white, size=size.small)
     sp_preConvDone := true
-// ── 1A.4C TARGET FLIP-ZONE REGISTRY — the HTF leg the wave is driving INTO ──────
-// Induction is destination-relative: it lives at the flip zone of the TARGET leg
-// (where early traders enter), not the current wave's own zone. Bearish (dir -1)
-// targets a demand flip zone BELOW (top < price); bullish targets supply ABOVE
-// (bottom > price). Prefer H4 (se240); fall back to H1 (se60).
-float _tfzTop = na
-float _tfzBot = na
-if direction == -1
-    if not na(se240_ft) and not na(se240_fb) and se240_ft < close
-        _tfzTop := se240_ft
-        _tfzBot := se240_fb
-    if na(_tfzTop) and not na(se60_ft) and not na(se60_fb) and se60_ft < close
-        _tfzTop := se60_ft
-        _tfzBot := se60_fb
-if direction == 1
-    if not na(se240_ft) and not na(se240_fb) and se240_fb > close
-        _tfzTop := se240_ft
-        _tfzBot := se240_fb
-    if na(_tfzTop) and not na(se60_ft) and not na(se60_fb) and se60_fb > close
-        _tfzTop := se60_ft
-        _tfzBot := se60_fb
-// ── 1A.4B INDUCTION = price ENTERING the target leg's flip zone (early traders) ─
-bool _spInTgtFlip = not na(_tfzTop) and not na(_tfzBot) and high >= _tfzBot and low <= _tfzTop
-if showTraceZones and not sp_inducDone and direction != 0 and _spInTgtFlip
-    label.new(bar_index, (_tfzTop + _tfzBot) / 2.0, "Induction",
+bool  _spInFlip = not na(flipzoneInducLow) and not na(flipzoneInducHigh) and high >= flipzoneInducLow and low <= flipzoneInducHigh
+if showTraceZones and sp_preConvDone and not sp_inducDone and direction != 0 and _spInFlip
+    label.new(bar_index, nz(flipzoneInducPrice, close), "Induction",
          style=direction == 1 ? label.style_label_up : label.style_label_down,
          color=color.new(#ffd000, 30), textcolor=color.black, size=size.small)
     sp_inducDone := true
