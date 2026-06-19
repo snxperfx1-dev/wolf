@@ -1,5 +1,5 @@
 //@version=6
-indicator("Letra 14", overlay=true, max_lines_count=500, max_labels_count=500, max_boxes_count=500, max_polylines_count=100)
+indicator("Letra 15", overlay=true, max_lines_count=500, max_labels_count=500, max_boxes_count=500, max_polylines_count=100)
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SECTION 1 — INPUT GROUPS
@@ -3427,7 +3427,16 @@ bool die_originOld     = die_originAge >= 100
 string die_narrative    = ie1a_hypFamily    // belief-family string from IE1A
 string die_narrativeDir = currentDisplayPhase // single Engine 1A display authority (canonical + liquidation substate)
 
-string die_chartLbl = f_chartPhaseLabel(currentDisplayPhase)
+// Absorption authority: Absorption may only be LABELLED after an objective (New
+// High/Low or liquidation objective arrival) was made; otherwise mid-leg momentum
+// exhaustion is NOT absorption (it is expansion / pre-convexity) and is suppressed.
+var bool die_objMade = false
+if ie1a_currentPhase == "New High" or ie1a_currentPhase == "New Low" or liqg_objArrival
+    die_objMade := true
+if ie1a_currentPhase == "Expansion" or ie1a_currentPhase == "Point 4 Origin"
+    die_objMade := false
+string die_chartLbl0 = f_chartPhaseLabel(currentDisplayPhase)
+string die_chartLbl = (die_chartLbl0 == "Absorption" and not die_objMade) ? "" : die_chartLbl0
 var string die_lastNarrative = ""
 bool die_narrativeChanged = die_chartLbl != die_lastNarrative and die_chartLbl != ""
 die_lastNarrative := die_chartLbl
@@ -4267,14 +4276,13 @@ if point4OriginBar != sp_waveBar
     sp_waveBar     := point4OriginBar
     sp_preConvDone := false
     sp_inducDone   := false
-float _spOrigin    = direction == 1 ? nz(point4OriginLow) : nz(point4OriginHigh)
-float _spSpan      = (not na(_spOrigin) and not na(se5_tgt)) ? math.abs(se5_tgt - _spOrigin) : na
-float _spTravel    = not na(_spOrigin) ? math.abs(close - _spOrigin) : na
-bool  _spChallenge = not na(_spSpan) and _spSpan > 0 and not na(_spTravel) and _spTravel >= _spSpan * 0.55
-if showTraceZones and not sp_preConvDone and direction != 0 and _spChallenge and efficiency < effThresh
+// Pre-Convexity = the initial displacement breaking the PREVIOUS swing it attacks
+// (per spec: "near or once the previous swing is broken"). Anchored at the break.
+bool _spPrevBreak = direction == -1 ? (not na(prevSwingLow) and close < prevSwingLow) : direction == 1 ? (not na(prevSwingHigh) and close > prevSwingHigh) : false
+if showTraceZones and not sp_preConvDone and direction != 0 and _spPrevBreak
     label.new(bar_index, direction == 1 ? high : low, "Pre-Convexity",
          style=direction == 1 ? label.style_label_down : label.style_label_up,
-         color=color.new(#c084fc, 30), textcolor=color.white, size=size.small)
+         color=color.new(#5a9cff, 15), textcolor=color.white, size=size.normal)
     sp_preConvDone := true
 // V73.8 TIGHT FU CANDLE → INDUCTION. The FU candle is a SPIKE that sweeps prior
 // structure then SELF-DESTRUCTS (body closes back through the candle). The spike
