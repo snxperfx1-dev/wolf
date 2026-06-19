@@ -1,5 +1,5 @@
 //@version=6
-indicator("Letra 17", overlay=true, max_lines_count=500, max_labels_count=500, max_boxes_count=500, max_polylines_count=100)
+indicator("Letra 18", overlay=true, max_lines_count=500, max_labels_count=500, max_boxes_count=500, max_polylines_count=100)
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SECTION 1 — INPUT GROUPS
@@ -801,15 +801,17 @@ string l4_phaseCanon = f_phaseStr(int(nz(se240_ph)))   // L4 = H4 context
 // label tracks the CURRENT price vs its origin in real time. These six variables
 // are the single source of wave direction for every dashboard panel, on-chart
 // label, narrative and downstream score, so fixing them here fixes them all.
-f_waveDirByOrigin(float _origin, int _fallbackDir) =>
-    not na(_origin) ? (close > _origin ? 1 : close < _origin ? -1 : _fallbackDir) : _fallbackDir
+f_waveDirByOrigin(float _origin, float _swH, float _swL, int _fallbackDir) =>
+    float _ref = not na(_origin) ? _origin : (not na(_swH) and not na(_swL) ? (_swH + _swL) / 2.0 : na)
+    int   _d   = not na(_ref) ? (close > _ref ? 1 : close < _ref ? -1 : _fallbackDir) : _fallbackDir
+    _d
 
-int   m1_dir = f_waveDirByOrigin(se1_inv,   int(nz(se1_dir)))
-int   l3_dir = f_waveDirByOrigin(se3_inv,   int(nz(se3_dir)))
-int   l0_dir = f_waveDirByOrigin(se5_inv,   int(nz(se5_dir)))
-int   l1_dir = f_waveDirByOrigin(se15_inv,  int(nz(se15_dir)))
-int   l2_dir = f_waveDirByOrigin(se60_inv,  int(nz(se60_dir)))
-int   l4_dir = f_waveDirByOrigin(se240_inv, int(nz(se240_dir)))
+int   m1_dir = f_waveDirByOrigin(se1_inv,   se1_sh,   se1_sl,   int(nz(se1_dir)))
+int   l3_dir = f_waveDirByOrigin(se3_inv,   se3_sh,   se3_sl,   int(nz(se3_dir)))
+int   l0_dir = f_waveDirByOrigin(se5_inv,   se5_sh,   se5_sl,   int(nz(se5_dir)))
+int   l1_dir = f_waveDirByOrigin(se15_inv,  se15_sh,  se15_sl,  int(nz(se15_dir)))
+int   l2_dir = f_waveDirByOrigin(se60_inv,  se60_sh,  se60_sl,  int(nz(se60_dir)))
+int   l4_dir = f_waveDirByOrigin(se240_inv, se240_sh, se240_sl, int(nz(se240_dir)))
 int   m1_bos = int(nz(se1_bos))
 int   l3_bos = int(nz(se3_bos))
 int   l0_bos = int(nz(se5_bos))
