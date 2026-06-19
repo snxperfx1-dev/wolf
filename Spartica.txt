@@ -1,5 +1,5 @@
 //@version=6
-indicator("Letra 7", overlay=true, max_lines_count=500, max_labels_count=500, max_boxes_count=500, max_polylines_count=100)
+indicator("Letra 10", overlay=true, max_lines_count=500, max_labels_count=500, max_boxes_count=500, max_polylines_count=100)
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SECTION 1 — INPUT GROUPS
@@ -4262,7 +4262,7 @@ if showTraceZones and not sp_preConvDone and direction != 0 and _spChallenge and
          color=color.new(#c084fc, 30), textcolor=color.white, size=size.small)
     sp_preConvDone := true
 bool  _spInFlip = not na(flipzoneInducLow) and not na(flipzoneInducHigh) and high >= flipzoneInducLow and low <= flipzoneInducHigh
-if showTraceZones and sp_preConvDone and not sp_inducDone and direction != 0 and _spInFlip
+if showTraceZones and not sp_inducDone and direction != 0 and _spInFlip
     label.new(bar_index, nz(flipzoneInducPrice, close), "Induction",
          style=direction == 1 ? label.style_label_up : label.style_label_down,
          color=color.new(#ffd000, 30), textcolor=color.black, size=size.small)

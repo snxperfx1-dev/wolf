@@ -1197,3 +1197,63 @@ Additive, on the compiling baseline. No canonical logic removed.
 Still deferred (compile-checked iteration required): physics-before-phase source
 reorder (canonical phase 3-D), per-TF liquidation overlays, ExecProb/Fusion
 re-pointing, non-liquidation dynamic progress.
+
+
+
+---
+
+# ENGINE 1A.4B / 4C — OBJECTIVE TRANSPORT PRINCIPLE (philosophical foundation)
+
+> Additive. Reframes the lifecycle: most movement is **transport**, not reversal.
+
+## Core principle
+Most price action exists only to **transport price from the current structure to
+the target structure**. The interesting part begins **at the target leg**. The
+engine must think like a manual trader asking *"where am I being transported
+to?"* — not *"what pattern do I see?"*
+
+## Two regimes
+- **TRANSPORT REGIME** (everything *before* objective arrival): Expansion ·
+  Pre-Convexity · Induction · Pre-Objective Liquidation Wave (Push · Displacement
+  · Internal Induction · Terminal Liquidation). **No true reversal exists here.**
+  This is where manipulation, liquidation and inventory manufacture live —
+  *never trade inside transport.*
+- **REGENERATION REGIME** (everything *after* objective arrival): Objective
+  Arrival · True CHoCH · Absorption · Demand/Supply Return · new Expansion.
+  **This is where real trading begins.**
+
+## The transport chain (bearish example: H1 transporting into H4 demand)
+```
+Transport expansion  → deliver price to the previous swing (stay with it)
+   ↓
+Pre-Convexity        → attack the previous swing; first cracks; still transport
+   ↓
+Induction (FLIP ZONE)→ trigger early counter-participants; manufacture liquidity;
+                       this is the handoff: "moving toward inventory" → "using it"
+   ↓
+Liquidation wave     → induction extreme → Push → Displacement → Internal
+                       Induction → Terminal Liquidation (the falling knife)
+   ↓
+Destination reached  → true supply/demand
+   ↓
+Objective Arrival → True CHoCH → Absorption → regeneration → ENTER
+```
+
+## Why induction is the key event
+Induction marks the moment transport changes from *moving toward inventory* to
+*using inventory to complete the objective*. It is the structural handoff between
+transport and liquidation — which is why it must anchor to the flip zone and
+why its label is so important.
+
+## Implementation status (Letra 10)
+- **Induction label** anchors to the wave's own flip-zone inducement
+  (`flipzoneInducPrice` / `flipzoneInducLow..High`) — the detection that lands on
+  the right zone ~95% of the time (restored after the `se240/se60` experiment in
+  Letra 8/9 failed in aligned trends). Now fires on flip-zone entry without
+  requiring the Pre-Convexity label first.
+- **Pre-Convexity label** anchors to the previous-swing-challenge region (≥55% of
+  the origin→target span with efficiency slowing).
+- **Still to wire:** induction-extreme → liquidation-wave origin, and the
+  transport/regeneration regime split feeding the "don't trade inside transport"
+  rule into DOE/Copilot. (Deferred — the early `liqg` engine cannot see the
+  late-computed flip zone, an ordering constraint to resolve next.)
