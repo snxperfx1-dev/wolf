@@ -1,5 +1,5 @@
 //@version=6
-indicator("Letra 9", overlay=true, max_lines_count=500, max_labels_count=500, max_boxes_count=500, max_polylines_count=100)
+indicator("Letra 8", overlay=true, max_lines_count=500, max_labels_count=500, max_boxes_count=500, max_polylines_count=100)
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SECTION 1 — INPUT GROUPS
@@ -1690,27 +1690,7 @@ var int    liqg_dir      = 0
 var float  liqg_target   = na
 var float  liqg_initDist = na
 bool   _liqgRetr = ie1a_currentPhase == "Retracement Induction"
-// Destination-relative arming (Engine 1A.4A): the liquidation wave is born when the
-// M5 wave drives INTO the target leg's flip zone (the induction location). Bearish
-// targets the demand flip zone below (H4 se240 preferred, H1 se60 fallback); bullish
-// targets supply above. Flip-zone ENTRY = induction = liquidation-wave birth.
-float  _liqgTfzTop = na
-float  _liqgTfzBot = na
-if displayWaveDir_M5 == -1
-    if not na(se240_ft) and se240_ft < close
-        _liqgTfzTop := se240_ft
-        _liqgTfzBot := se240_fb
-    if na(_liqgTfzTop) and not na(se60_ft) and se60_ft < close
-        _liqgTfzTop := se60_ft
-        _liqgTfzBot := se60_fb
-if displayWaveDir_M5 == 1
-    if not na(se240_fb) and se240_fb > close
-        _liqgTfzTop := se240_ft
-        _liqgTfzBot := se240_fb
-    if na(_liqgTfzTop) and not na(se60_fb) and se60_fb > close
-        _liqgTfzTop := se60_ft
-        _liqgTfzBot := se60_fb
-bool   _liqgArm  = not na(_liqgTfzTop) and not na(_liqgTfzBot) and high >= _liqgTfzBot and low <= _liqgTfzTop
+bool   _liqgArm  = ie1a_currentPhase == "Expansion Induction" or _liqgRetr
 float  _liqgObj  = se5_tgt
 if _liqgArm and not liqg_active and not na(_liqgObj)
     liqg_active   := true
